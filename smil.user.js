@@ -5,7 +5,7 @@
 
 var svgns="http://www.w3.org/2000/svg";
 var xlinkns="http://www.w3.org/1999/xlink";
-var mpf = 10; // milliseconds per frame
+var mpf = 25; // milliseconds per frame
 
 var animators = new Array();  // all animators
 var id2anim = new Object();   // id -> animator
@@ -17,8 +17,7 @@ var animations = new Array(); // running animators
  */
 function initSMIL() {
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) {
-
-    var animates = document.getElementsByTagName("*");
+    var animates = document.getElementsByTagNameNS(svgns,"*");
     for(var j=0; j<animates.length ;j++) {
       var anim = animates.item(j);
       var namespaceURI = anim.namespaceURI;
@@ -654,9 +653,13 @@ function toRGB(color) {
     color = color.replace('rgb(', '');
     color = color.replace(')', '');
     var rgb = color.split(',');
-    rgb[0] = parseInt(rgb[0]);
-    rgb[1] = parseInt(rgb[1]);
-    rgb[2] = parseInt(rgb[2]);
+    for (var i=0; i<rgb.length ;i++) {
+      var len = rgb[i].length-1;
+      if (rgb[i].substring(len)=="%")
+        rgb[i] = Math.round((rgb[i].substring(0,len))*2.55);
+      else
+        rgb[i] = parseInt(rgb[i]);
+    }
     return rgb;
   } else if (color.charAt(0)=='#') {
     color = color.trim();
@@ -666,9 +669,12 @@ function toRGB(color) {
       rgb[1] = parseInt(color.substring(3,5),16);
       rgb[2] = parseInt(color.substring(5,7),16);
     } else {
-      rgb[0] = parseInt(color.substring(1,2),16)*17;
-      rgb[1] = parseInt(color.substring(2,3),16)*17;
-      rgb[2] = parseInt(color.substring(3,4),16)*17;
+      rgb[0] = color.substring(1,2);
+      rgb[1] = color.substring(2,3);
+      rgb[2] = color.substring(3,4);
+      rgb[0] = parseInt(rgb[0]+rgb[0],16);
+      rgb[1] = parseInt(rgb[1]+rgb[1],16);
+      rgb[2] = parseInt(rgb[2]+rgb[2],16);
     }
     return rgb;
   } else {
@@ -894,7 +900,7 @@ propDefaults['writing-mode'] = 'lr-tb';
  */
 String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ''); };
 
-initSMIL();
+window.addEventListener('load', initSMIL, false);
 
 
 /*
@@ -929,3 +935,8 @@ tests it fails :
 
 
 */
+
+
+
+
+
