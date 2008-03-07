@@ -8,7 +8,7 @@ var xlinkns="http://www.w3.org/1999/xlink";
 var mpf = 25; // milliseconds per frame
 
 var animators = new Array();  // all animators
-var id2anim = new Object();   // id -> animator
+var id2anim = new Object();   // id -> animation elements (workaround a gecko bug)
 var animations = new Array(); // running animators
 
 /**
@@ -29,11 +29,12 @@ function initSMIL() {
         animators.push(animator);
         var id = anim.getAttribute("id");
         if (id)
-          id2anim[id] = animator;
+          id2anim[id] = anim;
       }
     }
     
     // I schedule them (after having instanciating them, for sync-based events)
+    // (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
     for (var i=0; i<animators.length; i++)
       animators[i].register();
     
@@ -41,6 +42,28 @@ function initSMIL() {
     window.setInterval(animate, mpf);
   }
 }
+
+// because I can't add a function to an element in a userJS in gecko
+function getEventTargetById(id, ref) {
+  var element = null;
+  if (id=="prev") {
+    element = ref.previousSibling;
+    while(element && element.nodeType!=1)
+      element = element.previousSibling;
+  }
+  if (element==null)
+    element = document.getElementById(id);
+  if (element==null)
+    element = id2anim[id]; // because getElementById doen't returns smil elems in gecko
+  if (element==null)
+    return null;
+  for(var i=0; i<animators.length ;i++) {
+    if (animators[i].anim==element)
+      return animators[i];
+  }
+  return element;
+}
+
 
 /**
  * corresponds to one <animate>, <set>, <animateTransform>, ...
@@ -75,18 +98,16 @@ Animator.prototype = {
         if (io==-1)
           io = time.indexOf("-");
         if (io!=-1) {
-          offset = toMillis(time.substring(io));
-          time = time.substring(0, io);
+          offset = toMillis(time.substring(io).replace(" ", ""));
+          time = time.substring(0, io).trim();
         }
         io = time.indexOf(".");
         var element;
         if (io==-1)
-          element = this.anim.parentNode;
+          element = this.target;
         else {
           var id = time.substring(0, io);
-          element = id2anim[id];
-          if(element==null)
-            element = document.getElementById(id);
+          element = getEventTargetById(id, this.anim);
         }
         if(element==null)
           continue;
@@ -114,10 +135,11 @@ Animator.prototype = {
       this.initVal = this.target.getAttribute(attributeName);
     else
       this.initVal = this.target.getAttribute(attributeName);
-   
+    this.realInitVal = this.initVal;
+
     if (!this.initVal && propDefaults[attributeName] )
       this.initVal = propDefaults[attributeName];
-  },
+   },
   
   /**
    * starts the animation
@@ -125,7 +147,7 @@ Animator.prototype = {
    * not called when repeating
    */
   begin : function(offset) {
-    if (offset && offset>0) {
+    if (offset!=null) {
       var me = this;
       var myself = this.begin;
       var call = function() {myself.call(me)};
@@ -135,15 +157,18 @@ Animator.prototype = {
 
     this.stop();
     this.running = true;
+    this.recordInitVal();
     if (this.anim.nodeName=="set")
       this.step(this.to);
     // what does dur="indefinite" mean anyway ?
     // it makes sense for <set> only, I think.
     var dur = this.dur;
-    if (dur==null || dur=="" || dur=="indefinite")
+    if (dur==null || dur=="" || dur=="indefinite") {
+      for(var i=0; i<this.beginListeners.length ;i++)
+        this.beginListeners[i].call();
       return;
+    }
     this.repeat = this.repeatCount;
-    this.recordInitVal();
     this.start();
     if (offset && offset<0)
       this.dateBegin.setTime(this.dateBegin.getTime()+offset);
@@ -253,9 +278,13 @@ Animator.prototype = {
       return this.finish();
     else {
       this.repeat--;
-      if (this.repeat>0)
+      if (this.repeat>0) {
         this.start();
-      else 
+        for(var i=0; i<this.repeatIterations.length ;i++) {
+          if (this.repeatIterations[i]==(this.repeatCount-this.repeat))
+            this.repeatListeners[i].call();
+        }
+      } else 
         return this.finish();
     }
     return true;
@@ -279,7 +308,7 @@ Animator.prototype = {
       this.freeze();
     } else {
       this.stop();
-      this.step(this.initVal);
+      this.step(this.realInitVal);
       kept = false;
     }
     if (this.running) {
@@ -316,6 +345,11 @@ Animator.prototype = {
       this.beginListeners.push(func);
     else if (event=="end")
       this.endListeners.push(func);
+    else if (event.length>7 && event.substring(0,6)=="repeat") {
+      var iteration = event.substring(7,event.length-1);
+      this.repeatListeners.push(func);
+      this.repeatIterations.push(iteration);
+    }
   },
   
   /**
@@ -327,12 +361,11 @@ Animator.prototype = {
       var pathHref = mpath.getAttributeNS(xlinkns, "href");
       return document.getElementById(pathHref.substring(1));
     } else {
-      var path = this.anim.getAttribute("path");
-      if (path) {
-        var pathEl = document.createElementNS(svgns, "path");
-        pathEl.setAttribute("d", path);
-        pathEl.setAttribute("display", "none");
-        this.anim.parentNode.appendChild(pathEl);
+      var d = this.anim.getAttribute("path");
+      if (d) {
+        var pathEl = createPath(d);
+        //pathEl.setAttribute("display", "none");
+        //this.anim.parentNode.appendChild(pathEl);
         return pathEl;
       }
     }
@@ -390,6 +423,47 @@ Animator.prototype = {
       return ret.join(",");
     };
   },
+
+  d : function() {
+    this.interpolate = function(from, to, percent) {
+      var path = "";
+    //if (this.attributeName=="d")
+    //  alert(from.pathSegList);
+      var listFrom = from.pathSegList;
+      var listTo = to.pathSegList;
+      var segFrom;
+      var segTo;
+      for (var i=0; i<listFrom.numberOfItems && i<listTo.numberOfItems ;i++) {
+        segFrom = listFrom.getItem(i);
+        segTo = listTo.getItem(i);
+        typeFrom = segFrom.pathSegType;
+        typeTo = segTo.pathSegType;
+        if (typeFrom==1 || typeTo==1)
+          path += " z ";
+        else {
+          var x = segFrom.x+((segTo.x-segFrom.x)*percent);
+          var y = segFrom.y+((segTo.y-segFrom.y)*percent);
+          if (typeFrom==2 || typeTo==2)
+            path += " M ";
+          else if (typeFrom==4 || typeTo==4)
+            path += " L ";
+          else {
+            var x1 = segFrom.x1+((segTo.x1-segFrom.x1)*percent);
+            var y1 = segFrom.y1+((segTo.y1-segFrom.y1)*percent);
+            var x2 = segFrom.x2+((segTo.x2-segFrom.x2)*percent);
+            var y2 = segFrom.y2+((segTo.y2-segFrom.y2)*percent);
+            path += " C "+x1+","+y1+" "+x2+","+y2+" ";
+          }
+          path += x+","+y;
+        } 
+      }
+      return path;
+    };
+    this.normalize = function(value) {
+      var path = createPath(value);
+      return path;
+    }
+  },
   
 };
 /**
@@ -408,6 +482,29 @@ function Animator(anim) {
     this.target = anim.parentNode;
   this.attributeType = anim.getAttribute("attributeType");
   this.attributeName = anim.getAttribute("attributeName");
+  if (this.attributeName=="d")
+    this.d();
+  else if (this.attributeName=="points") {
+    this.interpolate = function(from, to, percent) {
+      var ret = new Array();
+      var xyFrom, xyTo, x, y;
+      for (var i=0; i<from.length && i<to.length ;i++) {
+        xyFrom = from[i].split(",");
+        xyTo = to[i].split(",");
+        x = parseFloat(xyFrom[0])+((parseFloat(xyTo[0])-xyFrom[0])*percent);
+        y = parseFloat(xyFrom[1])+((parseFloat(xyTo[1])-xyFrom[1])*percent);
+        ret.push(x+","+y);
+      }
+      return ret.join(" ");
+    };
+    this.normalize = function(value) {
+      var ar = value.split(" ");
+      for(var i=ar.length-1 ;i>=0; i--)
+        if (ar[i]=="")
+          ar.splice(i,1);
+      return ar;
+    };
+  }
   this.from = anim.getAttribute("from");
   this.to = anim.getAttribute("to");
   this.by = anim.getAttribute("by");
@@ -434,12 +531,14 @@ function Animator(anim) {
   
   this.beginListeners = new Array();
   this.endListeners = new Array();
+  this.repeatListeners = new Array();
+  this.repeatIterations = new Array();
   
   var nodeName = anim.localName;
 
   if (nodeName=="animate") {
 
-    if ((this.from && this.from.substring(0,1)=="#") || (this.to && this.to.substring(0,1)=="#"))
+    if ((this.from && (this.from.substring(0,1)=="#" || (this.from.length>5 && this.from.trim().substring(0,4)=="rgb("))) || (this.to && (this.to.substring(0,1)=="#" || (this.to.length>5 && this.to.trim().substring(0,4)=="rgb(") )))
       this.color();
 
   } else if (nodeName=="animateColor") {
@@ -452,11 +551,14 @@ function Animator(anim) {
       var attributeType = this.attributeType;
       var attributeName = this.attributeName;
       var type = this.type;
+      if(!this.target.transform)
+        return;
       transList = this.target.transform.animVal;
       if (transList.numberOfItems>0)
         this.initVal = decompose(transList.getItem(0).matrix, "translate");
       else
         this.initVal = "0,0";
+      this.realInitVal = this.initVal;
     };
     this.path = this.getPath();
     if (this.path) {
@@ -489,6 +591,8 @@ function Animator(anim) {
       var attributeType = this.attributeType;
       var attributeName = this.attributeName;
       var type = this.type;
+      if(!this.target.transform)
+        return;
       transList = this.target.transform.animVal;
       if (transList.numberOfItems>0) {
         this.initVal = decompose(transList.getItem(0).matrix, type);
@@ -502,6 +606,7 @@ function Animator(anim) {
         else
           this.initVal = 0;
       }
+      this.realInitVal = this.initVal;
     };
     
     if (this.type=="scale") {
@@ -580,6 +685,7 @@ function animate() {
         i--;
     } catch(exc) {
       //console.log(exc);
+      //alert(exc);
     }
   }
   // it would be cool if the attributes would be computed only, in the previous loop
@@ -680,6 +786,12 @@ function toRGB(color) {
   } else {
     return colors[color];
   }
+}
+
+function createPath(d) {
+  var pathEl = document.createElementNS(svgns, "path");
+  pathEl.setAttribute("d", d);
+  return pathEl;
 }
 
 var colors = {
@@ -907,7 +1019,7 @@ window.addEventListener('load', initSMIL, false);
 tests it fails :
 02 additive accumulate
 03 inheritance
-06 path attribute (FF bug)
+06 path attribute (gecko)
 08 idem
 09 calcMode discrete
 11 calcMode paced
@@ -921,20 +1033,35 @@ tests it fails :
 30 uses
 31 display and visibility
 33 keypoints, keyTimes
-34 points
-36 target.transform ?? probablement facile
-39 ???
-40 except posMarkers !!!
-41 target.transform again
-44 points again
-46 target.transform again
-52 xlink:href defines the event listener too ??
-60 ...
+34 filled square discrete
+36 animated switch
+39 display, ... probably more
+41 lots of stuffs
+44 circle discrete
+46 lots
+60 negative end event, accessKey
+61 ...
 
 
-
+known bugs :
+- <use>
+- out of sync : compute dateBegin instead of blindly get the date
+- <switch>
+- additive
+- accumulate
+- inheritance
+- path attribute (gecko only)
+- calcMode
+- href (tests 20,21)
+- multiple transforms
+- display / visibility
+- keyPoints / keyTimes
+- points
+- negative end event ?
+- accesskey
 
 */
+
 
 
 
