@@ -43,7 +43,7 @@ function initSMIL() {
   }
 }
 
-// because I can't add a function to an element in a userJS in gecko
+
 function getEventTargetById(id, ref) {
   var element = null;
   if (id=="prev") {
@@ -54,13 +54,11 @@ function getEventTargetById(id, ref) {
   if (element==null)
     element = document.getElementById(id);
   if (element==null)
-    element = id2anim[id]; // because getElementById doen't returns smil elems in gecko
+    element = id2anim[id]; // because getElementById doesn't returns smil elems in gecko
   if (element==null)
     return null;
-  for(var i=0; i<animators.length ;i++) {
-    if (animators[i].anim==element)
-      return animators[i];
-  }
+  if (element.animator)
+    return element.animator
   return element;
 }
 
@@ -480,6 +478,8 @@ function Animator(anim) {
     this.target = document.getElementById(href.substring(1))
   else
     this.target = anim.parentNode;
+  anim.targetElement = this.target;
+  anim.animator = this;
   this.attributeType = anim.getAttribute("attributeType");
   this.attributeName = anim.getAttribute("attributeName");
   if (this.attributeName=="d")
@@ -703,7 +703,17 @@ function animate() {
 function toMillis(time) {
   time = time.trim();
   var len = time.length;
-  if (len>2 && time.substring(len-2)=="ms") {
+  var io = time.indexOf(":");
+  
+  if (io!=-1) {
+    var clockVal = time.split(':');
+    var len = clockVal.length;
+    time = 0;
+    if (clockVal.length==3)
+      time += parseInt(clockVal[0])*3600000;
+    time += parseInt(clockVal[len-2])*60000;
+    time += parseFloat(clockVal[len-1])*1000;
+  } else if (len>2 && time.substring(len-2)=="ms") {
     time = time.substring(0, time.length-2);
   } else if (len>1 && time.substring(len-1)=="s") {
     time = time.substring(0, time.length-1);
@@ -1013,57 +1023,3 @@ propDefaults['writing-mode'] = 'lr-tb';
 String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ''); };
 
 window.addEventListener('load', initSMIL, false);
-
-
-/*
-tests it fails :
-02 additive accumulate
-03 inheritance
-06 path attribute (gecko)
-08 idem
-09 calcMode discrete
-11 calcMode paced
-12 calcMode spline
-14 discrete
-15 paced
-17 spline
-20 href ?
-21 href ?
-24 multiple transforms !
-30 uses
-31 display and visibility
-33 keypoints, keyTimes
-34 filled square discrete
-36 animated switch
-39 display, ... probably more
-41 lots of stuffs
-44 circle discrete
-46 lots
-60 negative end event, accessKey
-61 ...
-
-
-known bugs :
-- <use>
-- out of sync : compute dateBegin instead of blindly get the date
-- <switch>
-- additive
-- accumulate
-- inheritance
-- path attribute (gecko only)
-- calcMode
-- href (tests 20,21)
-- multiple transforms
-- display / visibility
-- keyPoints / keyTimes
-- points
-- negative end event ?
-- accesskey
-
-*/
-
-
-
-
-
-
