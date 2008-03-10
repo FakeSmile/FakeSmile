@@ -7,7 +7,6 @@ var mpf = 25; // milliseconds per frame
 
 var svgns="http://www.w3.org/2000/svg";
 var xlinkns="http://www.w3.org/1999/xlink";
-var animFeature = "http://www.w3.org/TR/SVG11/feature#SVG-animation";
 
 var animators = new Array();  // all animators
 var id2anim = new Object();   // id -> animation elements (workaround a gecko bug)
@@ -19,9 +18,14 @@ var timeZero;
  * the document animations are fetched and registered
  */
 function initSMIL() {
-  if(!document.implementation.hasFeature(animFeature, "1.1") && document.documentElement.getAttribute("smiling")!="fake") {
+  if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1") && document.documentElement.getAttribute("smiling")!="fake") {
     document.documentElement.setAttribute("smiling", "fake");
-
+    
+    var svgs = document.getElementsByTagNameNS(svgns,"svg");
+    if (svgs.length==0)
+      return;
+    
+    // because events are not dispatched to used elements in gecko
     var uses = document.getElementsByTagNameNS(svgns,"use");
     var newIds = new Object();
     for(var i=uses.length-1; i>=0 ;i--) {
@@ -230,7 +234,8 @@ Animator.prototype = {
       this.initVal = this.target.getAttribute(attributeName);
     this.realInitVal = this.initVal;
     
-    // I should get the inherited value here (getPresentationValue is not supported) 
+    // TODO
+    // I should get the inherited value here (getPresentationAttribute is not supported) 
     if (!this.initVal && propDefaults[attributeName] )
       this.initVal = propDefaults[attributeName];
   },
@@ -556,8 +561,8 @@ Animator.prototype = {
     this.isInterpolable = function(from, to) { return true; };
     this.interpolate = function(from, to, percent) {
       var path = "";
-      var listFrom = from.pathSegList;
-      var listTo = to.pathSegList;
+      var listFrom = from.normalizedPathSegList;
+      var listTo = to.normalizedPathSegList;
       var segFrom;
       var segTo;
       for (var i=0; i<listFrom.numberOfItems && i<listTo.numberOfItems ;i++) {
@@ -959,9 +964,13 @@ function toRGB(color) {
 }
 
 function createPath(d) {
-  var pathEl = document.createElementNS(svgns, "path");
-  pathEl.setAttribute("d", d);
-  return pathEl;
+  var path = document.createElementNS(svgns, "path");
+  path.setAttribute("d", d);
+  if (!path.normalizedPathSegList) {
+    // TODO : normalize the path
+    path.normalizedPathSegList = path.pathSegList;
+  }
+  return path;
 }
 
 var colors = {
