@@ -3,20 +3,113 @@
 // @namespace      svg.smil
 // ==/UserScript==
 
+var mpf = 25; // milliseconds per frame
+
 var svgns="http://www.w3.org/2000/svg";
 var xlinkns="http://www.w3.org/1999/xlink";
-var mpf = 25; // milliseconds per frame
+var animFeature = "http://www.w3.org/TR/SVG11/feature#SVG-animation";
 
 var animators = new Array();  // all animators
 var id2anim = new Object();   // id -> animation elements (workaround a gecko bug)
 var animations = new Array(); // running animators
+var timeZero;
 
 /**
  * if declarative animations are not supported,
  * the document animations are fetched and registered
  */
 function initSMIL() {
-  if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) {
+  if(!document.implementation.hasFeature(animFeature, "1.1") && document.documentElement.getAttribute("smiling")!="fake") {
+    document.documentElement.setAttribute("smiling", "fake");
+
+    var uses = document.getElementsByTagNameNS(svgns,"use");
+    var newIds = new Object();
+    for(var i=uses.length-1; i>=0 ;i--) {
+      var use = uses.item(i);
+      var href = use.getAttributeNS(xlinkns, "href");
+      var ref = document.getElementById(href.substring(1));
+      var clone = ref.cloneNode(true);
+      var suff = "workaroundUseBug"+i;
+      var all = clone.getElementsByTagName("*");
+      var useId = use.id;
+      if (!useId) {
+        var oldId = clone.id;
+        if (oldId) {
+          var newId = oldId+suff;
+          newIds[oldId] = newId;
+          clone.setAttribute("id", newId);
+        }
+      } else
+        clone.setAttribute("id", useId);
+      for(var j=0; j<all.length ;j++) {
+        var elem = all[j];
+        var oldId = elem.id;
+        if (oldId) {
+          var newId = oldId+suff;
+          newIds[oldId] = newId;
+          elem.setAttribute("id", newId);
+        }
+      }
+      for(var j=0; j<all.length ;j++) {
+        var elem = all[j];
+        var href = elem.getAttributeNS(xlinkns, "href");
+        if (href && newIds[href.substring(1)])
+          elem.setAttributeNS(xlinkns, "href", newIds[href.substring(1)]);
+        var begin = elem.getAttribute("begin");
+        if (begin) {
+          for(var oldId in newIds) {
+            if(newIds.hasOwnProperty(oldId))
+              begin = begin.replace(oldId+".", newIds[oldId]+".");
+          }
+          //console.log(begin);
+          elem.setAttribute("begin", begin);
+        }
+        var end = elem.getAttribute("end");
+        if (end) {
+          for(var oldId in newIds) {
+            if(newIds.hasOwnProperty(oldId))
+              end = end.replace(oldId+".", newIds[oldId]+".");
+          }
+          elem.setAttribute("end", end);
+        }
+      }
+
+      if(use.hasAttribute("opacity"))
+        clone.setAttribute("opacity", use.getAttribute("opacity"));
+      if(use.hasAttribute("transform"))
+        clone.setAttribute("transform", use.getAttribute("transform"));
+      if(use.hasAttribute("display"))
+        clone.setAttribute("display", use.getAttribute("display"));
+      use.parentNode.insertBefore(clone,use);
+      use.parentNode.removeChild(use);
+    } 
+       
+    var all = document.getElementsByTagName("*");
+    for(var j=0; j<all.length ;j++) {
+      var elem = all[j];
+      var href = elem.getAttributeNS(xlinkns, "href");
+      if (href && newIds[href.substring(1)])
+        elem.setAttributeNS(xlinkns, "href", newIds[href.substring(1)]);
+      var begin = elem.getAttribute("begin");
+      if (begin) {
+        for(var oldId in newIds) {
+          if(newIds.hasOwnProperty(oldId))
+            begin = begin.replace(oldId+".", newIds[oldId]+".");
+        }
+        //console.log(begin);
+        elem.setAttribute("begin", begin);
+      }
+      var end = elem.getAttribute("end");
+      if (end) {
+        for(var oldId in newIds) {
+          if(newIds.hasOwnProperty(oldId))
+            end = end.replace(oldId+".", newIds[oldId]+".");
+        }
+        elem.setAttribute("end", end);
+      }
+    }
+    
+
     var animates = document.getElementsByTagNameNS(svgns,"*");
     for(var j=0; j<animates.length ;j++) {
       var anim = animates.item(j);
@@ -32,7 +125,8 @@ function initSMIL() {
           id2anim[id] = anim;
       }
     }
-    
+   
+    timeZero = new Date();
     // I schedule them (after having instanciating them, for sync-based events)
     // (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
     for (var i=0; i<animators.length; i++)
@@ -101,15 +195,16 @@ Animator.prototype = {
         }
         io = time.indexOf(".");
         var element;
-        if (io==-1)
+        if (io==-1) {
           element = this.target;
-        else {
+        } else {
           var id = time.substring(0, io);
           element = getEventTargetById(id, this.anim);
         }
         if(element==null)
           continue;
         var event = time.substring(io+1);
+        //console.log(element);
         
         var call = function() {func.call(me, offset)}; 
         element.addEventListener(event, call, false);
@@ -134,10 +229,11 @@ Animator.prototype = {
     else
       this.initVal = this.target.getAttribute(attributeName);
     this.realInitVal = this.initVal;
-
+    
+    // I should get the inherited value here (getPresentationValue is not supported) 
     if (!this.initVal && propDefaults[attributeName] )
       this.initVal = propDefaults[attributeName];
-   },
+  },
   
   /**
    * starts the animation
@@ -145,6 +241,9 @@ Animator.prototype = {
    * not called when repeating
    */
   begin : function(offset) {
+    //console.log(this.anim);
+    if (this.restart=="never" || (this.running && this.restart=="whenNotActive"))
+      return;
     if (offset!=null) {
       var me = this;
       var myself = this.begin;
@@ -166,10 +265,11 @@ Animator.prototype = {
         this.beginListeners[i].call();
       return;
     }
-    this.repeat = this.repeatCount;
+    this.iteration = 0;
     this.start();
     if (offset && offset<0)
-      this.dateBegin.setTime(this.dateBegin.getTime()+offset);
+      this.iterBegin.setTime(this.iterBegin.getTime()+offset);
+    this.startTime = new Date();
     animations.push(this);
     for(var i=0; i<this.beginListeners.length ;i++)
       this.beginListeners[i].call();
@@ -179,14 +279,17 @@ Animator.prototype = {
    * This function is overriden for multiple values attributes (scale, rotate, translate)
    */
   normalize : function(value) {
-    return parseFloat(value);
+    var num = parseFloat(value);
+    if (isNaN(num))
+      return value;
+    return value;
   },
 
   /**
    * called when started or repeating
    */
   start : function() {
-    this.dateBegin = new Date();
+    this.iterBegin = new Date();
     if (this.from)
       this.currFrom = this.from;
     else
@@ -201,13 +304,15 @@ Animator.prototype = {
    * Sums up two normalized values
    */
   add : function(from, by) {
-    return from+by;
+    return parseFloat(from)+parseFloat(by);
   },
 
   /**
    * Overridden in case of values list
    */
   getLocalFromTo : function(percent) {
+    if (this.calcMode=="discrete")
+      percent = Math.round(percent);
     return [this.currFrom, this.currTo, percent];
   },
   
@@ -221,17 +326,20 @@ Animator.prototype = {
     var dur = this.computedDur;
     var values = this.values;
 
-    var beginTime = this.dateBegin;
+    var beginTime = this.iterBegin;
 
     var diff = curTime-beginTime;
     var percent = diff/dur;
     if (percent>=1)
       return this.end();
+
+    var iteration = parseFloat(this.iteration);
+    if (this.repeatCount && this.repeatCount!="indefinite" && (iteration+percent)>=this.repeatCount)
+      return this.end();
+    if (this.repeatDur && this.repeatDur!="indefinite" && (curTime-this.startTime)>=toMillis(this.repeatDur))
+      return this.end();
+ 
     if (anim.localName=="set")
-      return true;
-      
-    var repeatCount = parseFloat(this.repeat);
-    if (!isNaN(repeatCount) && percent>parseFloat(repeatCount))
       return true;
 
     var fromTo = this.getLocalFromTo(percent);
@@ -240,13 +348,23 @@ Animator.prototype = {
     this.step(curVal);
     return true;
   },
-
+  
+  isInterpolable : function(from, to) {
+    return (!isNaN(from) && !isNaN(to));
+  },
+  
   /**
    * Does the interpolation
    * This function is overriden
    */ 
   interpolate : function(from, to, percent) {
-    return from+((to-from)*percent);
+    if (!this.isInterpolable(from, to)) {
+      if (percent<.5)
+        return from;
+      else
+        return to;
+    }
+    return parseFloat(from)+((to-from)*percent);
   },
 
 
@@ -270,20 +388,22 @@ Animator.prototype = {
    * it restarts if repeatCount
    */
   end : function() {
-    if(this.repeat=="indefinite")
-      this.start();
-    else if (this.repeat==null || this.repeat=="")
+    if (!this.repeatCount && !this.repeatDur)
       return this.finish();
     else {
-      this.repeat--;
-      if (this.repeat>0) {
+      this.iteration++;
+      var now = new Date();
+      if (this.repeatCount && this.repeatCount!="indefinite" && this.iteration>=this.repeatCount)
+        return this.finish();
+      else if (this.repeatDur && this.repeatDur!="indefinite" && (now-this.startTime)>=toMillis(this.repeatDur))
+        return this.finish();
+      else {
         this.start();
         for(var i=0; i<this.repeatIterations.length ;i++) {
-          if (this.repeatIterations[i]==(this.repeatCount-this.repeat))
+          if (this.repeatIterations[i]==this.iteration)
             this.repeatListeners[i].call();
         }
-      } else 
-        return this.finish();
+      } 
     }
     return true;
   },
@@ -293,6 +413,11 @@ Animator.prototype = {
    * Freezes or remove the animated value
    */
   finish : function(offset) {
+    if (this.min && this.min!="indefinite") {
+      var now = new Date();
+      if ((now-this.startTime)>=toMillis(this.min))
+        return;
+    }
     if (offset && offset>0) {
       var me = this;
       var myself = this.finish;
@@ -332,7 +457,7 @@ Animator.prototype = {
    * freezes the attribute value to the ending value
    */
   freeze : function() {
-    this.step(this.to);
+    this.step(this.currTo);
   },
   
   /**
@@ -391,6 +516,7 @@ Animator.prototype = {
       var y = from[1]+by[1];
       return x+","+y;
     };
+    this.isInterpolable = function(from, to) { return true; };
     this.interpolate = function(from, to, percent) {
       var x = from[0]+((to[0]-from[0])*percent);
       var y = from[1]+((to[1]-from[1])*percent);
@@ -404,6 +530,7 @@ Animator.prototype = {
    * <animate> ona a color attribute
    */
   color : function() {
+    this.isInterpolable = function(from, to) { return true; };
     this.interpolate = function(from, to, percent) {
       var r = Math.round(from[0]+((to[0]-from[0])*percent));
       var g = Math.round(from[1]+((to[1]-from[1])*percent));
@@ -412,7 +539,10 @@ Animator.prototype = {
       return val;
     };
     this.normalize = function(value) {
-      return toRGB(value);
+      var rgb = toRGB(value);
+      if (rgb==null)
+        return toRGB(propDefaults[this.attributeName]);
+      return rgb;
     }
     this.add = function(from, by) {
       var ret = new Array();
@@ -423,10 +553,9 @@ Animator.prototype = {
   },
 
   d : function() {
+    this.isInterpolable = function(from, to) { return true; };
     this.interpolate = function(from, to, percent) {
       var path = "";
-    //if (this.attributeName=="d")
-    //  alert(from.pathSegList);
       var listFrom = from.pathSegList;
       var listTo = to.pathSegList;
       var segFrom;
@@ -462,7 +591,7 @@ Animator.prototype = {
       return path;
     }
   },
-  
+
 };
 /**
  * contructor : 
@@ -485,6 +614,7 @@ function Animator(anim) {
   if (this.attributeName=="d")
     this.d();
   else if (this.attributeName=="points") {
+    this.isInterpolable = function(from, to) { return true; };
     this.interpolate = function(from, to, percent) {
       var ret = new Array();
       var xyFrom, xyTo, x, y;
@@ -516,18 +646,42 @@ function Animator(anim) {
       var tValues = this.values.split(";");
       if (percent==1)
         return [tValues[tValues.length-2], tValues[tValues.length-1], percent];
-      var parts = tValues.length-1;
-      var div = Math.floor(percent*parts);
-      var mod = percent%(1/parts);
-      return [tValues[div], tValues[div+1], mod*parts];
+      if (this.calcMode=="discrete" || !this.isInterpolable(tValues[0],tValues[1])) {
+        var parts = tValues.length;
+        var div = Math.floor(percent*parts);
+        return [tValues[div], tValues[div], 0];
+      } else {
+        var parts = tValues.length-1;
+        var div = Math.floor(percent*parts);
+        var mod = percent%(1/parts);
+        return [tValues[div], tValues[div+1], mod*parts];
+      }
     };
   }
+  this.calcMode = anim.getAttribute("calcMode");
   this.dur = anim.getAttribute("dur");
-  if (this.dur!=null && this.dur!="" && this.dur!="indefinite")
+  if (this.dur && this.dur!="indefinite")
     this.computedDur = toMillis(this.dur);
+  this.max = anim.getAttribute("max");
+  if (this.max && this.max!="indefinite") {
+    this.computedMax = toMillis(this.max);
+    if (!this.computedDur || this.computedDur>this.computedMax)
+      this.computedDur = this.computedMax;
+  }
+  this.min = anim.getAttribute("min");
+  if (this.min) {
+    this.computedMin = toMillis(this.min);
+    if (!this.computedDur || this.computedDur<this.computedMin)
+      this.computedDur = this.computedMin;
+  }
+  
   this.fill = anim.getAttribute("fill");
   this.type = anim.getAttribute("type");
   this.repeatCount = anim.getAttribute("repeatCount");
+  this.repeatDur = anim.getAttribute("repeatDur");
+  this.restart = anim.getAttribute("restart");
+  if (!this.restart)
+    this.restart = "always";
   
   this.beginListeners = new Array();
   this.endListeners = new Array();
@@ -547,16 +701,15 @@ function Animator(anim) {
 
   } else if (nodeName=="animateMotion") {
   
+    this.isInterpolable = function(from, to) { return true; };
     this.recordInitVal = function() {
       var attributeType = this.attributeType;
       var attributeName = this.attributeName;
       var type = this.type;
-      if(!this.target.transform)
-        return;
-      transList = this.target.transform.animVal;
-      if (transList.numberOfItems>0)
+      if (this.target.transform && this.target.transform.animVal.numberOfItems>0) {
+        var transList = this.target.transform.animVal;
         this.initVal = decompose(transList.getItem(0).matrix, "translate");
-      else
+      } else
         this.initVal = "0,0";
       this.realInitVal = this.initVal;
     };
@@ -587,14 +740,13 @@ function Animator(anim) {
     
   } else if (nodeName=="animateTransform") {
   
+    this.isInterpolable = function(from, to) { return true; };
     this.recordInitVal = function() {
       var attributeType = this.attributeType;
       var attributeName = this.attributeName;
       var type = this.type;
-      if(!this.target.transform)
-        return;
-      transList = this.target.transform.animVal;
-      if (transList.numberOfItems>0) {
+      if (this.target.transform && this.target.transform.animVal.numberOfItems>0) {
+        var transList = this.target.transform.animVal;
         this.initVal = decompose(transList.getItem(0).matrix, type);
       } else {
         if (type=="scale")
@@ -669,6 +821,12 @@ function Animator(anim) {
   this.anim.beginElementAt = function(offset) { me.begin(offset*1000); return true; };
   this.anim.endElement = function() { me.finish(); return true; };
   this.anim.endElementAt = function(offset) { me.finish(offset*1000); return true; };
+  
+  this.anim.getStartTime = function() { return parseFloat(me.iterBegin-timeZero)/1000; };
+  this.anim.getCurrentTime = function() { 
+    var now = new Date();
+    return parseFloat(now-me.iterBegin)/1000; 
+  };
 }
 
 
@@ -684,8 +842,10 @@ function animate() {
       if (!animations[i].f(curTime))
         i--;
     } catch(exc) {
-      //console.log(exc);
-      //alert(exc);
+      if (exc.message!="Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIDOMSVGPathElement.getTotalLength]") {
+        console.log(exc);
+        //alert(exc);
+      }
     }
   }
   // it would be cool if the attributes would be computed only, in the previous loop
@@ -706,7 +866,7 @@ function toMillis(time) {
   var io = time.indexOf(":");
   
   if (io!=-1) {
-    var clockVal = time.split(':');
+    var clockVal = time.split(":");
     var len = clockVal.length;
     time = 0;
     if (clockVal.length==3)
@@ -765,10 +925,10 @@ function decompose(matrix, type) {
  */
 function toRGB(color) {
   if (color.substring(0, 3)=="rgb") {
-    color = color.replace(' ', '');
-    color = color.replace('rgb(', '');
-    color = color.replace(')', '');
-    var rgb = color.split(',');
+    color = color.replace(" ", "");
+    color = color.replace("rgb(", "");
+    color = color.replace(")", "");
+    var rgb = color.split(",");
     for (var i=0; i<rgb.length ;i++) {
       var len = rgb[i].length-1;
       if (rgb[i].substring(len)=="%")
@@ -777,7 +937,7 @@ function toRGB(color) {
         rgb[i] = parseInt(rgb[i]);
     }
     return rgb;
-  } else if (color.charAt(0)=='#') {
+  } else if (color.charAt(0)=="#") {
     color = color.trim();
     var rgb = new Array();
     if (color.length==7) {
@@ -955,71 +1115,72 @@ var colors = {
 };
 
 var propDefaults = [];
-propDefaults['alignment-baseline'] = '0';
-propDefaults['baseline-shift'] = 'baseline';
-propDefaults['clip'] = 'auto';
-propDefaults['clip-path'] = 'none';
-propDefaults['clip-rule'] = 'nonzero';
-propDefaults['color'] = 'depends on user agent';
-propDefaults['color-interpolation'] = 'sRGB';
-propDefaults['color-interpolation-filters'] = 'linearRGB';
-propDefaults['color-profile'] = 'auto';
-propDefaults['color-rendering'] = 'auto';
-propDefaults['cursor'] = 'auto';
-propDefaults['direction'] = 'ltr';
-propDefaults['display'] = 'inline';
-propDefaults['dominant-baseline'] = 'auto';
-propDefaults['enable-background'] = 'accumulate';
-propDefaults['fill'] = 'black';
-propDefaults['fill-opacity'] = '1';
-propDefaults['fill-rule'] = 'nonzero';
-propDefaults['filter'] = 'none';
-propDefaults['flood-color'] = 'black';
-propDefaults['flood-opacity'] = '1';
-propDefaults['font'] = 'see individual properties';
-propDefaults['font-family'] = 'Arial';
-propDefaults['font-size'] = 'medium';
-propDefaults['font-size-adjust'] = 'none';
-propDefaults['font-stretch'] = 'normal';
-propDefaults['font-style'] = 'normal';
-propDefaults['font-variant'] = 'normal';
-propDefaults['font-weight'] = 'normal';
-propDefaults['glyph-orientation-horizontal'] = '0';
-propDefaults['glyph-orientation-vertical'] = 'auto';
-propDefaults['image-rendering'] = 'auto';
-propDefaults['kerning'] = 'auto';
-propDefaults['letter-spacing'] = 'normal';
-propDefaults['lighting-color'] = 'white';
-propDefaults['marker-end'] = 'none';
-propDefaults['marker-mid'] = 'none';
-propDefaults['marker-start'] = 'none';
-propDefaults['mask'] = 'none';
-propDefaults['opacity'] = '1';
-propDefaults['overflow'] = 'hidden';
-propDefaults['pointer-events'] = 'visiblePainted';
-propDefaults['shape-rendering'] = 'auto';
-propDefaults['stop-color'] = 'black';
-propDefaults['stop-opacity'] = '1';
-propDefaults['stroke'] = 'none';
-propDefaults['stroke-dasharray'] = 'none';
-propDefaults['stroke-dashoffset'] = '0';
-propDefaults['stroke-linecap'] = 'butt';
-propDefaults['stroke-linejoin'] = 'miter';
-propDefaults['stroke-miterlimit'] = '4';
-propDefaults['stroke-opacity'] = '1';
-propDefaults['stroke-width'] = '1';
-propDefaults['text-anchor'] = 'start';
-propDefaults['text-decoration'] = 'none';
-propDefaults['text-rendering'] = 'auto';
-propDefaults['unicode-bidi'] = 'normal';
-propDefaults['visibility'] = 'visible';
-propDefaults['word-spacing'] = 'normal';
-propDefaults['writing-mode'] = 'lr-tb';
+propDefaults["alignment-baseline"] = "0";
+propDefaults["baseline-shift"] = "baseline";
+propDefaults["clip"] = "auto";
+propDefaults["clip-path"] = "none";
+propDefaults["clip-rule"] = "nonzero";
+propDefaults["color"] = "depends on user agent";
+propDefaults["color-interpolation"] = "sRGB";
+propDefaults["color-interpolation-filters"] = "linearRGB";
+propDefaults["color-profile"] = "auto";
+propDefaults["color-rendering"] = "auto";
+propDefaults["cursor"] = "auto";
+propDefaults["direction"] = "ltr";
+propDefaults["display"] = "inline";
+propDefaults["dominant-baseline"] = "auto";
+propDefaults["enable-background"] = "accumulate";
+propDefaults["fill"] = "black";
+propDefaults["fill-opacity"] = "1";
+propDefaults["fill-rule"] = "nonzero";
+propDefaults["filter"] = "none";
+propDefaults["flood-color"] = "black";
+propDefaults["flood-opacity"] = "1";
+propDefaults["font"] = "see individual properties";
+propDefaults["font-family"] = "Arial";
+propDefaults["font-size"] = "medium";
+propDefaults["font-size-adjust"] = "none";
+propDefaults["font-stretch"] = "normal";
+propDefaults["font-style"] = "normal";
+propDefaults["font-variant"] = "normal";
+propDefaults["font-weight"] = "normal";
+propDefaults["glyph-orientation-horizontal"] = "0";
+propDefaults["glyph-orientation-vertical"] = "auto";
+propDefaults["image-rendering"] = "auto";
+propDefaults["kerning"] = "auto";
+propDefaults["letter-spacing"] = "normal";
+propDefaults["lighting-color"] = "white";
+propDefaults["marker-end"] = "none";
+propDefaults["marker-mid"] = "none";
+propDefaults["marker-start"] = "none";
+propDefaults["mask"] = "none";
+propDefaults["opacity"] = "1";
+propDefaults["overflow"] = "hidden";
+propDefaults["pointer-events"] = "visiblePainted";
+propDefaults["shape-rendering"] = "auto";
+propDefaults["stop-color"] = "black";
+propDefaults["stop-opacity"] = "1";
+propDefaults["stroke"] = "none";
+propDefaults["stroke-dasharray"] = "none";
+propDefaults["stroke-dashoffset"] = "0";
+propDefaults["stroke-linecap"] = "butt";
+propDefaults["stroke-linejoin"] = "miter";
+propDefaults["stroke-miterlimit"] = "4";
+propDefaults["stroke-opacity"] = "1";
+propDefaults["stroke-width"] = "1";
+propDefaults["text-anchor"] = "start";
+propDefaults["text-decoration"] = "none";
+propDefaults["text-rendering"] = "auto";
+propDefaults["unicode-bidi"] = "normal";
+propDefaults["visibility"] = "visible";
+propDefaults["word-spacing"] = "normal";
+propDefaults["writing-mode"] = "lr-tb";
 
 
 /**
  * removes the leading and trailing spaces chars from the string
  */
-String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ''); };
+String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ""); };
 
-window.addEventListener('load', initSMIL, false);
+
+window.addEventListener("load", initSMIL, false);
