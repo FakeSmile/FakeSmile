@@ -1,9 +1,21 @@
+/*
+@id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
+@name FakeSmile
+@version 0.1
+@description SMIL implementation in ECMAScript
+@creator David Leunen (leunen.d@gmail.com)
+@homepageURL http://leunen.d.free.fr/fakesmile
+@updateURL http://leunen.d.free.fr/fakesmile/update.rdf
+@ff_min_version 2.0
+@ff_max_version 2.0.0.*
+*/
 // ==UserScript==
 // @name           smil
 // @namespace      svg.smil
 // ==/UserScript==
 
 var mpf = 25; // milliseconds per frame
+var workaroundUses = false;
 
 var svgns="http://www.w3.org/2000/svg";
 var xlinkns="http://www.w3.org/1999/xlink";
@@ -12,6 +24,19 @@ var animators = new Array();  // all animators
 var id2anim = new Object();   // id -> animation elements (workaround a gecko bug)
 var animations = new Array(); // running animators
 var timeZero;
+
+function registerInstance(instance) {
+  var corr = instance.correspondingElement;
+  var instList = corr.instanceList;
+  if (!instList) {
+    instList = new Array();
+    corr.instanceList = instList;
+  }
+  instList.push(instance);
+  var children = instance.childNodes;
+  for(var i=0; i<children.length ;i++)
+    registerInstance(children.item(i));
+}
 
 /**
  * if declarative animations are not supported,
@@ -24,36 +49,81 @@ function initSMIL() {
     var svgs = document.getElementsByTagNameNS(svgns,"svg");
     if (svgs.length==0)
       return;
-    
-    // because events are not dispatched to used elements in gecko
+
     var uses = document.getElementsByTagNameNS(svgns,"use");
-    var newIds = new Object();
     for(var i=uses.length-1; i>=0 ;i--) {
       var use = uses.item(i);
-      var href = use.getAttributeNS(xlinkns, "href");
-      var ref = document.getElementById(href.substring(1));
-      var clone = ref.cloneNode(true);
-      var suff = "workaroundUseBug"+i;
-      var all = clone.getElementsByTagName("*");
-      var useId = use.id;
-      if (!useId) {
-        var oldId = clone.id;
-        if (oldId) {
-          var newId = oldId+suff;
-          newIds[oldId] = newId;
-          clone.setAttribute("id", newId);
+      if(use.instanceRoot) {
+        registerInstance(use.instanceRoot);
+      } 
+    }
+    
+    
+    if (workaroundUses) {
+      // because events are not dispatched to used elements in gecko
+      var uses = document.getElementsByTagNameNS(svgns,"use");
+      var newIds = new Object();
+      for(var i=uses.length-1; i>=0 ;i--) {
+        var use = uses.item(i);
+        var href = use.getAttributeNS(xlinkns, "href");
+        var ref = document.getElementById(href.substring(1));
+        var clone = ref.cloneNode(true);
+        var suff = "workaroundUseBug"+i;
+        var all = clone.getElementsByTagName("*");
+        var useId = use.id;
+        if (!useId) {
+          var oldId = clone.id;
+          if (oldId) {
+            var newId = oldId+suff;
+            newIds[oldId] = newId;
+            clone.setAttribute("id", newId);
+          }
+        } else
+          clone.setAttribute("id", useId);
+        for(var j=0; j<all.length ;j++) {
+          var elem = all[j];
+          var oldId = elem.id;
+          if (oldId) {
+            var newId = oldId+suff;
+            newIds[oldId] = newId;
+            elem.setAttribute("id", newId);
+          }
         }
-      } else
-        clone.setAttribute("id", useId);
-      for(var j=0; j<all.length ;j++) {
-        var elem = all[j];
-        var oldId = elem.id;
-        if (oldId) {
-          var newId = oldId+suff;
-          newIds[oldId] = newId;
-          elem.setAttribute("id", newId);
+        for(var j=0; j<all.length ;j++) {
+          var elem = all[j];
+          var href = elem.getAttributeNS(xlinkns, "href");
+          if (href && newIds[href.substring(1)])
+            elem.setAttributeNS(xlinkns, "href", newIds[href.substring(1)]);
+          var begin = elem.getAttribute("begin");
+          if (begin) {
+            for(var oldId in newIds) {
+              if(newIds.hasOwnProperty(oldId))
+                begin = begin.replace(oldId+".", newIds[oldId]+".");
+            }
+            //console.log(begin);
+            elem.setAttribute("begin", begin);
+          }
+          var end = elem.getAttribute("end");
+          if (end) {
+            for(var oldId in newIds) {
+              if(newIds.hasOwnProperty(oldId))
+                end = end.replace(oldId+".", newIds[oldId]+".");
+            }
+            elem.setAttribute("end", end);
+          }
         }
-      }
+
+        if(use.hasAttribute("opacity"))
+          clone.setAttribute("opacity", use.getAttribute("opacity"));
+        if(use.hasAttribute("transform"))
+          clone.setAttribute("transform", use.getAttribute("transform"));
+        if(use.hasAttribute("display"))
+          clone.setAttribute("display", use.getAttribute("display"));
+        use.parentNode.insertBefore(clone,use);
+        use.parentNode.removeChild(use);
+      } 
+
+      var all = document.getElementsByTagName("*");
       for(var j=0; j<all.length ;j++) {
         var elem = all[j];
         var href = elem.getAttributeNS(xlinkns, "href");
@@ -77,42 +147,7 @@ function initSMIL() {
           elem.setAttribute("end", end);
         }
       }
-
-      if(use.hasAttribute("opacity"))
-        clone.setAttribute("opacity", use.getAttribute("opacity"));
-      if(use.hasAttribute("transform"))
-        clone.setAttribute("transform", use.getAttribute("transform"));
-      if(use.hasAttribute("display"))
-        clone.setAttribute("display", use.getAttribute("display"));
-      use.parentNode.insertBefore(clone,use);
-      use.parentNode.removeChild(use);
-    } 
-       
-    var all = document.getElementsByTagName("*");
-    for(var j=0; j<all.length ;j++) {
-      var elem = all[j];
-      var href = elem.getAttributeNS(xlinkns, "href");
-      if (href && newIds[href.substring(1)])
-        elem.setAttributeNS(xlinkns, "href", newIds[href.substring(1)]);
-      var begin = elem.getAttribute("begin");
-      if (begin) {
-        for(var oldId in newIds) {
-          if(newIds.hasOwnProperty(oldId))
-            begin = begin.replace(oldId+".", newIds[oldId]+".");
-        }
-        //console.log(begin);
-        elem.setAttribute("begin", begin);
-      }
-      var end = elem.getAttribute("end");
-      if (end) {
-        for(var oldId in newIds) {
-          if(newIds.hasOwnProperty(oldId))
-            end = end.replace(oldId+".", newIds[oldId]+".");
-        }
-        elem.setAttribute("end", end);
-      }
     }
-    
 
     var animates = document.getElementsByTagNameNS(svgns,"*");
     for(var j=0; j<animates.length ;j++) {
@@ -208,10 +243,15 @@ Animator.prototype = {
         if(element==null)
           continue;
         var event = time.substring(io+1);
-        //console.log(element);
         
-        var call = function() {func.call(me, offset)}; 
+        var call = funk(func, me, offset); 
         element.addEventListener(event, call, false);
+        if (element.instanceList) {
+          for(var j=0; j<element.instanceList.length  ;j++) {
+            if(element.instanceList[j].addEventListener)
+              element.instanceList[j].addEventListener(event, call, false);
+          }
+        }
       } else {
         time = toMillis(time);
         func.call(me, time);
@@ -246,10 +286,9 @@ Animator.prototype = {
    * not called when repeating
    */
   begin : function(offset) {
-    //console.log(this.anim);
     if (this.restart=="never" || (this.running && this.restart=="whenNotActive"))
       return;
-    if (offset!=null) {
+    if (offset!=null && offset>=0) {
       var me = this;
       var myself = this.begin;
       var call = function() {myself.call(me)};
@@ -257,24 +296,16 @@ Animator.prototype = {
       return;
     }
 
+    this.startTime = new Date();
+    if (offset && offset<0)
+      this.startTime.setTime(this.startTime.getTime()+offset);
     this.stop();
     this.running = true;
     this.recordInitVal();
     if (this.anim.nodeName=="set")
       this.step(this.to);
-    // what does dur="indefinite" mean anyway ?
-    // it makes sense for <set> only, I think.
-    var dur = this.dur;
-    if (dur==null || dur=="" || dur=="indefinite") {
-      for(var i=0; i<this.beginListeners.length ;i++)
-        this.beginListeners[i].call();
-      return;
-    }
     this.iteration = 0;
-    this.start();
-    if (offset && offset<0)
-      this.iterBegin.setTime(this.iterBegin.getTime()+offset);
-    this.startTime = new Date();
+    this.start(this.startTime);
     animations.push(this);
     for(var i=0; i<this.beginListeners.length ;i++)
       this.beginListeners[i].call();
@@ -293,8 +324,8 @@ Animator.prototype = {
   /**
    * called when started or repeating
    */
-  start : function() {
-    this.iterBegin = new Date();
+  start : function(when) {
+    this.iterBegin = when;
     if (this.from)
       this.currFrom = this.from;
     else
@@ -329,6 +360,8 @@ Animator.prototype = {
     var anim = this.anim;
     
     var dur = this.computedDur;
+    if (isNaN(dur))
+      return true;
     var values = this.values;
 
     var beginTime = this.iterBegin;
@@ -380,9 +413,12 @@ Animator.prototype = {
   step : function(value) {
     var attributeType = this.attributeType;
     var attributeName = this.attributeName;
-    if (attributeType=="CSS")
+    if (attributeType=="CSS") {
+      // workaround a gecko and webkit bug
+      if (attributeName=="font-size" && !isNaN(value))
+        value += "px";
       this.target.style.setProperty(attributeName, value, "");
-    else if (attributeType=="XML")
+    } else if (attributeType=="XML")
       this.target.setAttribute(attributeName, value);
     else
       this.target.setAttribute(attributeName, value);
@@ -403,7 +439,7 @@ Animator.prototype = {
       else if (this.repeatDur && this.repeatDur!="indefinite" && (now-this.startTime)>=toMillis(this.repeatDur))
         return this.finish();
       else {
-        this.start();
+        this.start(now);
         for(var i=0; i<this.repeatIterations.length ;i++) {
           if (this.repeatIterations[i]==this.iteration)
             this.repeatListeners[i].call();
@@ -430,6 +466,13 @@ Animator.prototype = {
       window.setTimeout(call, offset);
       return;
     }
+    if (offset && offset<0) {
+      var now = new Date();
+      now.setTime(now.getTime()+offset);
+      if (now<this.startTime)
+        return;
+    }
+
     var fill = this.fill;
     var kept = true;
     if (fill=="freeze") {
@@ -561,8 +604,8 @@ Animator.prototype = {
     this.isInterpolable = function(from, to) { return true; };
     this.interpolate = function(from, to, percent) {
       var path = "";
-      var listFrom = from.normalizedPathSegList;
-      var listTo = to.normalizedPathSegList;
+      var listFrom = from.myNormalizedPathSegList;
+      var listTo = to.myNormalizedPathSegList;
       var segFrom;
       var segTo;
       for (var i=0; i<listFrom.numberOfItems && i<listTo.numberOfItems ;i++) {
@@ -670,7 +713,7 @@ function Animator(anim) {
   this.max = anim.getAttribute("max");
   if (this.max && this.max!="indefinite") {
     this.computedMax = toMillis(this.max);
-    if (!this.computedDur || this.computedDur>this.computedMax)
+    if (!isNaN(this.computedMax) && this.computedMax>0 && (!this.computedDur || this.computedDur>this.computedMax))
       this.computedDur = this.computedMax;
   }
   this.min = anim.getAttribute("min");
@@ -966,9 +1009,13 @@ function toRGB(color) {
 function createPath(d) {
   var path = document.createElementNS(svgns, "path");
   path.setAttribute("d", d);
-  if (!path.normalizedPathSegList) {
+  try { 
+    if (path.normalizedPathSegList)
+      path.myNormalizedPathSegList = path.normalizedPathSegList;
+  } catch(exc) {}
+  if(!path.myNormalizedPathSegList) {
     // TODO : normalize the path
-    path.normalizedPathSegList = path.pathSegList;
+    path.myNormalizedPathSegList = path.pathSegList;
   }
   return path;
 }
@@ -1185,6 +1232,9 @@ propDefaults["visibility"] = "visible";
 propDefaults["word-spacing"] = "normal";
 propDefaults["writing-mode"] = "lr-tb";
 
+function funk(func, obj, arg) {
+  return function() {func.call(obj, arg);};
+}
 
 /**
  * removes the leading and trailing spaces chars from the string
