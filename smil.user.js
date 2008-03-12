@@ -266,12 +266,16 @@ Animator.prototype = {
   recordInitVal : function() {
     var attributeType = this.attributeType;
     var attributeName = this.attributeName;
-    if (attributeType=="CSS")
+    if (attributeType=="CSS") {
+      // should use this.target.getPresentationAttribute instead
       this.initVal = this.target.style.getPropertyValue(attributeName);
-    else if (attributeType=="XML")
-      this.initVal = this.target.getAttribute(attributeName);
-    else
-      this.initVal = this.target.getAttribute(attributeName);
+    } else {
+      var animAtt = this.target[attributeName];
+      if (animAtt)
+        this.initVal = animAtt.animVal.value;
+      else
+        this.initVal = this.target.getAttribute(attributeName);
+    }
     this.realInitVal = this.initVal;
     
     // TODO
@@ -411,17 +415,20 @@ Animator.prototype = {
    * This function is overriden
    */
   step : function(value) {
-    var attributeType = this.attributeType;
     var attributeName = this.attributeName;
+    var attributeType = this.attributeType;
     if (attributeType=="CSS") {
       // workaround a gecko and webkit bug
       if (attributeName=="font-size" && !isNaN(value))
         value += "px";
       this.target.style.setProperty(attributeName, value, "");
-    } else if (attributeType=="XML")
-      this.target.setAttribute(attributeName, value);
-    else
-      this.target.setAttribute(attributeName, value);
+    } else {
+      var animAtt = this.target[attributeName];
+      if (animAtt)
+        animAtt.animVal.value = value;
+      else
+      	this.target.setAttribute(attributeName, value);
+    }
   },
   
   /**
@@ -659,6 +666,13 @@ function Animator(anim) {
   anim.animator = this;
   this.attributeType = anim.getAttribute("attributeType");
   this.attributeName = anim.getAttribute("attributeName");
+  if (this.attributeType!="CSS" && this.attributeType!="XML") {
+    if(propDefaults[this.attributeName])
+      this.attributeType = "CSS";
+    else
+      this.attributeType = "XML";
+  }
+    
   if (this.attributeName=="d")
     this.d();
   else if (this.attributeName=="points") {
@@ -1171,27 +1185,6 @@ var colors = {
 };
 
 var propDefaults = [];
-propDefaults["alignment-baseline"] = "0";
-propDefaults["baseline-shift"] = "baseline";
-propDefaults["clip"] = "auto";
-propDefaults["clip-path"] = "none";
-propDefaults["clip-rule"] = "nonzero";
-propDefaults["color"] = "depends on user agent";
-propDefaults["color-interpolation"] = "sRGB";
-propDefaults["color-interpolation-filters"] = "linearRGB";
-propDefaults["color-profile"] = "auto";
-propDefaults["color-rendering"] = "auto";
-propDefaults["cursor"] = "auto";
-propDefaults["direction"] = "ltr";
-propDefaults["display"] = "inline";
-propDefaults["dominant-baseline"] = "auto";
-propDefaults["enable-background"] = "accumulate";
-propDefaults["fill"] = "black";
-propDefaults["fill-opacity"] = "1";
-propDefaults["fill-rule"] = "nonzero";
-propDefaults["filter"] = "none";
-propDefaults["flood-color"] = "black";
-propDefaults["flood-opacity"] = "1";
 propDefaults["font"] = "see individual properties";
 propDefaults["font-family"] = "Arial";
 propDefaults["font-size"] = "medium";
@@ -1200,22 +1193,48 @@ propDefaults["font-stretch"] = "normal";
 propDefaults["font-style"] = "normal";
 propDefaults["font-variant"] = "normal";
 propDefaults["font-weight"] = "normal";
-propDefaults["glyph-orientation-horizontal"] = "0";
-propDefaults["glyph-orientation-vertical"] = "auto";
-propDefaults["image-rendering"] = "auto";
-propDefaults["kerning"] = "auto";
+
+propDefaults["direction"] = "ltr";
 propDefaults["letter-spacing"] = "normal";
+propDefaults["text-decoration"] = "none";
+propDefaults["unicode-bidi"] = "normal";
+propDefaults["word-spacing"] = "normal";
+
+propDefaults["clip"] = "auto";
+propDefaults["color"] = "depends on user agent";
+propDefaults["cursor"] = "auto";
+propDefaults["display"] = "inline";
+propDefaults["overflow"] = "hidden";
+propDefaults["visibility"] = "visible";
+
+propDefaults["clip-path"] = "none";
+propDefaults["clip-rule"] = "nonzero";
+propDefaults["mask"] = "none";
+propDefaults["opacity"] = "1";
+
+propDefaults["enable-background"] = "accumulate";
+propDefaults["filter"] = "none";
+propDefaults["flood-color"] = "black";
+propDefaults["flood-opacity"] = "1";
 propDefaults["lighting-color"] = "white";
+
+propDefaults["stop-color"] = "black";
+propDefaults["stop-opacity"] = "1";
+
+propDefaults["pointer-events"] = "visiblePainted";
+
+propDefaults["color-interpolation"] = "sRGB";
+propDefaults["color-interpolation-filters"] = "linearRGB";
+propDefaults["color-profile"] = "auto";
+propDefaults["color-rendering"] = "auto";
+propDefaults["fill"] = "black";
+propDefaults["fill-opacity"] = "1";
+propDefaults["fill-rule"] = "nonzero";
+propDefaults["image-rendering"] = "auto";
 propDefaults["marker-end"] = "none";
 propDefaults["marker-mid"] = "none";
 propDefaults["marker-start"] = "none";
-propDefaults["mask"] = "none";
-propDefaults["opacity"] = "1";
-propDefaults["overflow"] = "hidden";
-propDefaults["pointer-events"] = "visiblePainted";
 propDefaults["shape-rendering"] = "auto";
-propDefaults["stop-color"] = "black";
-propDefaults["stop-opacity"] = "1";
 propDefaults["stroke"] = "none";
 propDefaults["stroke-dasharray"] = "none";
 propDefaults["stroke-dashoffset"] = "0";
@@ -1224,12 +1243,15 @@ propDefaults["stroke-linejoin"] = "miter";
 propDefaults["stroke-miterlimit"] = "4";
 propDefaults["stroke-opacity"] = "1";
 propDefaults["stroke-width"] = "1";
-propDefaults["text-anchor"] = "start";
-propDefaults["text-decoration"] = "none";
 propDefaults["text-rendering"] = "auto";
-propDefaults["unicode-bidi"] = "normal";
-propDefaults["visibility"] = "visible";
-propDefaults["word-spacing"] = "normal";
+
+propDefaults["alignment-baseline"] = "0";
+propDefaults["baseline-shift"] = "baseline";
+propDefaults["dominant-baseline"] = "auto";
+propDefaults["glyph-orientation-horizontal"] = "0";
+propDefaults["glyph-orientation-vertical"] = "auto";
+propDefaults["kerning"] = "auto";
+propDefaults["text-anchor"] = "start";
 propDefaults["writing-mode"] = "lr-tb";
 
 function funk(func, obj, arg) {
