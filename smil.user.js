@@ -15,7 +15,6 @@
 // ==/UserScript==
 
 var mpf = 25; // milliseconds per frame
-var workaroundUses = false;
 
 var svgns="http://www.w3.org/2000/svg";
 var xlinkns="http://www.w3.org/1999/xlink";
@@ -58,97 +57,6 @@ function initSMIL() {
       } 
     }
     
-    
-    if (workaroundUses) {
-      // because events are not dispatched to used elements in gecko
-      var uses = document.getElementsByTagNameNS(svgns,"use");
-      var newIds = new Object();
-      for(var i=uses.length-1; i>=0 ;i--) {
-        var use = uses.item(i);
-        var href = use.getAttributeNS(xlinkns, "href");
-        var ref = document.getElementById(href.substring(1));
-        var clone = ref.cloneNode(true);
-        var suff = "workaroundUseBug"+i;
-        var all = clone.getElementsByTagName("*");
-        var useId = use.id;
-        if (!useId) {
-          var oldId = clone.id;
-          if (oldId) {
-            var newId = oldId+suff;
-            newIds[oldId] = newId;
-            clone.setAttribute("id", newId);
-          }
-        } else
-          clone.setAttribute("id", useId);
-        for(var j=0; j<all.length ;j++) {
-          var elem = all[j];
-          var oldId = elem.id;
-          if (oldId) {
-            var newId = oldId+suff;
-            newIds[oldId] = newId;
-            elem.setAttribute("id", newId);
-          }
-        }
-        for(var j=0; j<all.length ;j++) {
-          var elem = all[j];
-          var href = elem.getAttributeNS(xlinkns, "href");
-          if (href && newIds[href.substring(1)])
-            elem.setAttributeNS(xlinkns, "href", newIds[href.substring(1)]);
-          var begin = elem.getAttribute("begin");
-          if (begin) {
-            for(var oldId in newIds) {
-              if(newIds.hasOwnProperty(oldId))
-                begin = begin.replace(oldId+".", newIds[oldId]+".");
-            }
-            //console.log(begin);
-            elem.setAttribute("begin", begin);
-          }
-          var end = elem.getAttribute("end");
-          if (end) {
-            for(var oldId in newIds) {
-              if(newIds.hasOwnProperty(oldId))
-                end = end.replace(oldId+".", newIds[oldId]+".");
-            }
-            elem.setAttribute("end", end);
-          }
-        }
-
-        if(use.hasAttribute("opacity"))
-          clone.setAttribute("opacity", use.getAttribute("opacity"));
-        if(use.hasAttribute("transform"))
-          clone.setAttribute("transform", use.getAttribute("transform"));
-        if(use.hasAttribute("display"))
-          clone.setAttribute("display", use.getAttribute("display"));
-        use.parentNode.insertBefore(clone,use);
-        use.parentNode.removeChild(use);
-      } 
-
-      var all = document.getElementsByTagName("*");
-      for(var j=0; j<all.length ;j++) {
-        var elem = all[j];
-        var href = elem.getAttributeNS(xlinkns, "href");
-        if (href && newIds[href.substring(1)])
-          elem.setAttributeNS(xlinkns, "href", newIds[href.substring(1)]);
-        var begin = elem.getAttribute("begin");
-        if (begin) {
-          for(var oldId in newIds) {
-            if(newIds.hasOwnProperty(oldId))
-              begin = begin.replace(oldId+".", newIds[oldId]+".");
-          }
-          //console.log(begin);
-          elem.setAttribute("begin", begin);
-        }
-        var end = elem.getAttribute("end");
-        if (end) {
-          for(var oldId in newIds) {
-            if(newIds.hasOwnProperty(oldId))
-              end = end.replace(oldId+".", newIds[oldId]+".");
-          }
-          elem.setAttribute("end", end);
-        }
-      }
-    }
-
     var animates = document.getElementsByTagNameNS(svgns,"*");
     for(var j=0; j<animates.length ;j++) {
       var anim = animates.item(j);
@@ -271,7 +179,7 @@ Animator.prototype = {
       this.initVal = this.target.style.getPropertyValue(attributeName);
     } else {
       var animAtt = this.target[attributeName];
-      if (animAtt)
+      if (animAtt && animAtt.animVal)
         this.initVal = animAtt.animVal.value;
       else
         this.initVal = this.target.getAttribute(attributeName);
@@ -301,6 +209,7 @@ Animator.prototype = {
     }
 
     this.startTime = new Date();
+    //console.log(this.startTime-timeZero);
     if (offset && offset<0)
       this.startTime.setTime(this.startTime.getTime()+offset);
     this.stop();
@@ -424,7 +333,7 @@ Animator.prototype = {
       this.target.style.setProperty(attributeName, value, "");
     } else {
       var animAtt = this.target[attributeName];
-      if (animAtt)
+      if (animAtt && animAtt.animVal)
         animAtt.animVal.value = value;
       else
       	this.target.setAttribute(attributeName, value);
