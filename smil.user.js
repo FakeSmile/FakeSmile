@@ -5,7 +5,6 @@
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
-@updateURL http://leunen.d.free.fr/fakesmile/update.rdf
 @ff_min_version 2.0
 @ff_max_version 2.0.0.*
 */
@@ -17,6 +16,13 @@
 var mpf = 25; // milliseconds per frame
 
 var svgns="http://www.w3.org/2000/svg";
+var smilanimns="http://www.w3.org/2001/smil-animation";
+var smil2ns="http://www.w3.org/2001/SMIL20";
+var basicanim2ns="http://www.w3.org/2001/SMIL20/BasicAnimation";
+var splineanim2ns="http://www.w3.org/2001/SMIL20/SplineAnimation";
+var smil21ns="http://www.w3.org/2005/SMIL21";
+var basicanim21ns="http://www.w3.org/2005/SMIL21/BasicAnimation";
+var splineanim21ns="http://www.w3.org/2005/SMIL21/SplineAnimation";
 var xlinkns="http://www.w3.org/1999/xlink";
 
 var animators = new Array();  // all animators
@@ -45,10 +51,6 @@ function initSMIL() {
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1") && document.documentElement.getAttribute("smiling")!="fake") {
     document.documentElement.setAttribute("smiling", "fake");
     
-    var svgs = document.getElementsByTagNameNS(svgns,"svg");
-    if (svgs.length==0)
-      return;
-
     var uses = document.getElementsByTagNameNS(svgns,"use");
     for(var i=uses.length-1; i>=0 ;i--) {
       var use = uses.item(i);
@@ -57,11 +59,13 @@ function initSMIL() {
       } 
     }
     
-    var animates = document.getElementsByTagNameNS(svgns,"*");
+    var animates = document.getElementsByTagName("*");
     for(var j=0; j<animates.length ;j++) {
       var anim = animates.item(j);
       var namespaceURI = anim.namespaceURI;
-      if (namespaceURI!=svgns)
+      if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
+          namespaceURI!=smil2ns && namespaceURI!=basicanim2ns && namespaceURI!=splineanim2ns && 
+          namespaceURI!=smil21ns && namespaceURI!=basicanim21ns && namespaceURI!=splineanim21ns)
         continue;
       var nodeName = anim.localName;
       if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
@@ -137,7 +141,7 @@ Animator.prototype = {
         if (io==-1)
           io = time.indexOf("-");
         if (io!=-1) {
-          offset = toMillis(time.substring(io).replace(" ", ""));
+          offset = toMillis(time.substring(io).replace(/ /g, ""));
           time = time.substring(0, io).trim();
         }
         io = time.indexOf(".");
@@ -178,10 +182,10 @@ Animator.prototype = {
       // should use this.target.getPresentationAttribute instead
       this.initVal = this.target.style.getPropertyValue(attributeName);
     } else {
-      var animAtt = this.target[attributeName];
-      if (animAtt && animAtt.animVal)
-        this.initVal = animAtt.animVal.value;
-      else
+      //var animAtt = this.target[attributeName];
+      //if (animAtt && animAtt.animVal)
+      //  this.initVal = animAtt.animVal.value;
+      //else
         this.initVal = this.target.getAttribute(attributeName);
     }
     this.realInitVal = this.initVal;
@@ -209,7 +213,6 @@ Animator.prototype = {
     }
 
     this.startTime = new Date();
-    //console.log(this.startTime-timeZero);
     if (offset && offset<0)
       this.startTime.setTime(this.startTime.getTime()+offset);
     this.stop();
@@ -301,7 +304,17 @@ Animator.prototype = {
   },
   
   isInterpolable : function(from, to) {
-    return (!isNaN(from) && !isNaN(to));
+    var areN = (!isNaN(from) && !isNaN(to));
+    if (!areN && from.trim().indexOf(" ")!=-1 && to.trim().indexOf(" ")!=-1) {
+      var tfrom = from.trim().split(" ");
+      var tto = to.trim().split(" ");
+      areN = true;
+      if (tfrom.length==tto.length)
+        for(var i=0; i<tto.length ;i++)
+          if(!this.isInterpolable(tfrom[i], tto[i]))
+            return false
+    }
+    return areN;
   },
   
   /**
@@ -314,6 +327,14 @@ Animator.prototype = {
         return from;
       else
         return to;
+    }
+    if(from.trim().indexOf(" ")!=-1) {
+      var tfrom = from.split(" ");
+      var tto = to.split(" ");
+      var ret = new Array();
+      for(var i=0; i<tto.length ;i++)
+        ret[i] = this.interpolate(tfrom[i], tto[i], percent);
+      return ret.join(" ");
     }
     return parseFloat(from)+((to-from)*percent);
   },
@@ -332,10 +353,10 @@ Animator.prototype = {
         value += "px";
       this.target.style.setProperty(attributeName, value, "");
     } else {
-      var animAtt = this.target[attributeName];
-      if (animAtt && animAtt.animVal)
-        animAtt.animVal.value = value;
-      else
+      //var animAtt = this.target[attributeName];
+      //if (animAtt && animAtt.animVal)
+      //  animAtt.animVal.value = value;
+      //else
       	this.target.setAttribute(attributeName, value);
     }
   },
@@ -373,20 +394,20 @@ Animator.prototype = {
     if (this.min && this.min!="indefinite") {
       var now = new Date();
       if ((now-this.startTime)>=toMillis(this.min))
-        return;
+        return true;
     }
     if (offset && offset>0) {
       var me = this;
       var myself = this.finish;
       var call = function() {myself.call(me)};
       window.setTimeout(call, offset);
-      return;
+      return true;
     }
     if (offset && offset<0) {
       var now = new Date();
       now.setTime(now.getTime()+offset);
       if (now<this.startTime)
-        return;
+        return true;
     }
 
     var fill = this.fill;
@@ -576,7 +597,7 @@ function Animator(anim) {
   this.attributeType = anim.getAttribute("attributeType");
   this.attributeName = anim.getAttribute("attributeName");
   if (this.attributeType!="CSS" && this.attributeType!="XML") {
-    if(propDefaults[this.attributeName])
+    if(propDefaults[this.attributeName] && this.target.style)
       this.attributeType = "CSS";
     else
       this.attributeType = "XML";
@@ -734,7 +755,8 @@ function Animator(anim) {
     
     if (this.type=="scale") {
       this.normalize = function(value) {
-        var coords = value.split(",");
+        value = value.replace(/,/g," ");
+        var coords = value.split(" ");
         if (coords.length==1)
           coords[1] = coords[0];
         coords[0] = parseFloat(coords[0]);
@@ -745,7 +767,8 @@ function Animator(anim) {
       this.translation();
     } else if (this.type=="rotate") {
       this.normalize = function(value) {
-        var coords = value.split(",");
+        value = value.replace(/,/g," ");
+        var coords = value.split(" ");
         if (coords.length<3) {
           coords[0] = parseFloat(coords[0]);
           coords[1] = 0;
@@ -896,7 +919,7 @@ function decompose(matrix, type) {
  */
 function toRGB(color) {
   if (color.substring(0, 3)=="rgb") {
-    color = color.replace(" ", "");
+    color = color.replace(/ /g, "");
     color = color.replace("rgb(", "");
     color = color.replace(")", "");
     var rgb = color.split(",");
