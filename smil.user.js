@@ -175,25 +175,17 @@ Animator.prototype = {
    * Remembers the initial value of the animated attribute.
    * This function is overriden
    */
-  recordInitVal : function() {
-    var attributeType = this.attributeType;
-    var attributeName = this.attributeName;
-    if (attributeType=="CSS") {
+  getCurVal : function() {
+    if (this.attributeType=="CSS") {
       // should use this.target.getPresentationAttribute instead
-      this.initVal = this.target.style.getPropertyValue(attributeName);
+      return this.target.style.getPropertyValue(this.attributeName);
     } else {
-      //var animAtt = this.target[attributeName];
+      //var animAtt = this.target[this.attributeName];
       //if (animAtt && animAtt.animVal)
-      //  this.initVal = animAtt.animVal.value;
+      //  return animAtt.animVal.value;
       //else
-        this.initVal = this.target.getAttribute(attributeName);
+        return this.target.getAttribute(this.attributeName);
     }
-    this.realInitVal = this.initVal;
-    
-    // TODO
-    // I should get the inherited value here (getPresentationAttribute is not supported) 
-    if (!this.initVal && propDefaults[attributeName] )
-      this.initVal = propDefaults[attributeName];
   },
   
   /**
@@ -217,11 +209,24 @@ Animator.prototype = {
       this.startTime.setTime(this.startTime.getTime()+offset);
     this.stop();
     this.running = true;
-    this.recordInitVal();
+    var initVal = this.getCurVal();
+    this.realInitVal = initVal;
+    // TODO
+    // I should get the inherited value here (getPresentationAttribute is not supported) 
+    if (!initVal && propDefaults[this.attributeName] )
+      initVal = propDefaults[this.attributeName];
     if (this.anim.nodeName=="set")
       this.step(this.to);
     this.iteration = 0;
-    this.start(this.startTime);
+    if (this.from)
+      this.currFrom = this.from;
+    else
+      this.currFrom = initVal;
+    if (this.by && this.currFrom)
+      this.currTo = this.add(this.normalize(this.currFrom), this.normalize(this.by));
+    else
+      this.currTo = this.to;
+    this.iterBegin = this.startTime;
     animations.push(this);
     for(var i=0; i<this.beginListeners.length ;i++)
       this.beginListeners[i].call();
@@ -238,25 +243,10 @@ Animator.prototype = {
   },
 
   /**
-   * called when started or repeating
-   */
-  start : function(when) {
-    this.iterBegin = when;
-    if (this.from)
-      this.currFrom = this.from;
-    else
-      this.currFrom = this.initVal;
-    if (this.by && this.currFrom)
-      this.currTo = this.add(this.normalize(this.currFrom), this.normalize(this.by));
-    else
-      this.currTo = this.to;
-  },
-  
-  /**
    * Sums up two normalized values
    */
   add : function(from, by) {
-    return parseFloat(from)+parseFloat(by);
+    return ""+(parseFloat(from)+parseFloat(by));
   },
 
   /**
@@ -376,7 +366,20 @@ Animator.prototype = {
       else if (this.repeatDur && this.repeatDur!="indefinite" && (now-this.startTime)>=toMillis(this.repeatDur))
         return this.finish();
       else {
-        this.start(now);
+        if (this.accumulate=="sum") {
+          var curVal = this.getCurVal();
+          if (!curVal && propDefaults[this.attributeName] )
+            curVal = propDefaults[this.attributeName];
+          if (this.from)
+            this.currFrom = this.add(this.normalize(this.from), this.normalize(curVal));
+          else
+            this.currFrom = curVal;
+          if (this.by && this.currFrom)
+            this.currTo = this.add(this.normalize(this.currFrom), this.normalize(this.by));
+          else
+            this.currTo = this.add(this.normalize(this.to), this.normalize(curVal));
+        }
+        this.iterBegin = now;
         for(var i=0; i<this.repeatIterations.length ;i++) {
           if (this.repeatIterations[i]==this.iteration)
             this.repeatListeners[i].call();
@@ -491,7 +494,8 @@ Animator.prototype = {
     this.normalize = function(value) {
       var coords = value.split(",");
       if (coords.length==1)
-        coords[1] = this.initVal.split(",")[1];
+        coords[1] = "0";
+        //coords[1] = this.initVal.split(",")[1];
       coords[0] = parseFloat(coords[0]);
       coords[1] = parseFloat(coords[1]);
       return coords;
@@ -671,6 +675,8 @@ function Animator(anim) {
   this.type = anim.getAttribute("type");
   this.repeatCount = anim.getAttribute("repeatCount");
   this.repeatDur = anim.getAttribute("repeatDur");
+  this.accumulate = anim.getAttribute("accumulate");
+  this.additive = anim.getAttribute("additive");
   this.restart = anim.getAttribute("restart");
   if (!this.restart)
     this.restart = "always";
@@ -694,16 +700,13 @@ function Animator(anim) {
   } else if (nodeName=="animateMotion") {
   
     this.isInterpolable = function(from, to) { return true; };
-    this.recordInitVal = function() {
-      var attributeType = this.attributeType;
-      var attributeName = this.attributeName;
-      var type = this.type;
-      if (this.target.transform && this.target.transform.animVal.numberOfItems>0) {
-        var transList = this.target.transform.animVal;
-        this.initVal = decompose(transList.getItem(0).matrix, "translate");
+    this.getCurVal = function() {
+      var curTrans = this.target.transform;
+      if (curTrans && curTrans.animVal.numberOfItems>0) {
+        var transList = curTrans.animVal;
+        return decompose(transList.getItem(0).matrix, "translate");
       } else
-        this.initVal = "0,0";
-      this.realInitVal = this.initVal;
+        return "0,0";
     };
     this.path = this.getPath();
     if (this.path) {
@@ -733,24 +736,22 @@ function Animator(anim) {
   } else if (nodeName=="animateTransform") {
   
     this.isInterpolable = function(from, to) { return true; };
-    this.recordInitVal = function() {
-      var attributeType = this.attributeType;
-      var attributeName = this.attributeName;
+    this.getCurVal = function() {
       var type = this.type;
-      if (this.target.transform && this.target.transform.animVal.numberOfItems>0) {
-        var transList = this.target.transform.animVal;
-        this.initVal = decompose(transList.getItem(0).matrix, type);
+      var curTrans = this.target.transform;
+      if (curTrans && curTrans.animVal.numberOfItems>0) {
+        var transList = curTrans.animVal;
+        return decompose(transList.getItem(0).matrix, type);
       } else {
         if (type=="scale")
-          this.initVal = "1,1";
+          return "1,1";
         else if (type=="translate")
-          this.initVal = "0,0";
+          return "0,0";
         else if (type=="rotate")
-          this.initVal = "0,0,0";
+          return "0,0,0";
         else
-          this.initVal = 0;
+          return 0;
       }
-      this.realInitVal = this.initVal;
     };
     
     if (this.type=="scale") {
