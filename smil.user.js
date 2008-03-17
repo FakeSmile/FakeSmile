@@ -30,34 +30,16 @@ var id2anim = new Object();   // id -> animation elements (workaround a gecko bu
 var animations = new Array(); // running animators
 var timeZero;
 
-function registerInstance(instance) {
-  var corr = instance.correspondingElement;
-  var instList = corr.instanceList;
-  if (!instList) {
-    instList = new Array();
-    corr.instanceList = instList;
-  }
-  instList.push(instance);
-  var children = instance.childNodes;
-  for(var i=0; i<children.length ;i++)
-    registerInstance(children.item(i));
-}
-
 /**
  * if declarative animations are not supported,
  * the document animations are fetched and registered
  */
 function initSMIL() {
-  if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1") && document.documentElement.getAttribute("smiling")!="fake") {
-    document.documentElement.setAttribute("smiling", "fake");
-    
-    var uses = document.getElementsByTagNameNS(svgns,"use");
-    for(var i=uses.length-1; i>=0 ;i--) {
-      var use = uses.item(i);
-      if(use.instanceRoot) {
-        registerInstance(use.instanceRoot);
-      } 
-    }
+  if (document.documentElement.getAttribute("smiling")=="fake")
+    return;
+  document.documentElement.setAttribute("smiling", "fake");
+  //if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) {
+  if (true) {
     
     var animates = document.getElementsByTagName("*");
     for(var j=0; j<animates.length ;j++) {
@@ -69,7 +51,15 @@ function initSMIL() {
         continue;
       var nodeName = anim.localName;
       if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
-        var animator = new Animator(anim);
+        var href = anim.getAttributeNS(xlinkns, "href");
+        var target;
+        if (href!=null && href!="")
+          target = document.getElementById(href.substring(1))
+        else
+          target = anim.parentNode;
+        if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1"))
+          continue;
+        var animator = new Animator(anim, target);
         animators.push(animator);
         var id = anim.getAttribute("id");
         if (id)
@@ -103,7 +93,7 @@ function getEventTargetById(id, ref) {
   if (element==null)
     return null;
   if (element.animator)
-    return element.animator
+    return element.animator;
   return element;
 }
 
@@ -156,14 +146,8 @@ Animator.prototype = {
           continue;
         var event = time.substring(io+1);
         
-        var call = funk(func, me, offset); 
+        var call = funk(func, me, offset);
         element.addEventListener(event, call, false);
-        if (element.instanceList) {
-          for(var j=0; j<element.instanceList.length  ;j++) {
-            if(element.instanceList[j].addEventListener)
-              element.instanceList[j].addEventListener(event, call, false);
-          }
-        }
       } else {
         time = toMillis(time);
         func.call(me, time);
@@ -218,14 +202,22 @@ Animator.prototype = {
     if (this.anim.nodeName=="set")
       this.step(this.to);
     this.iteration = 0;
-    if (this.from)
-      this.currFrom = this.from;
-    else
-      this.currFrom = initVal;
-    if (this.by && this.currFrom)
-      this.currTo = this.add(this.normalize(this.currFrom), this.normalize(this.by));
-    else
-      this.currTo = this.to;
+
+    if (this.values)
+      this.animVals = this.values.split(";");
+    else {
+      this.animVals = new Array();
+      if (this.from)
+        this.animVals[0] = this.from;
+      else
+        this.animVals[0] = initVal;
+      if (this.by && this.animVals[0])
+        this.animVals[1] = this.add(this.normalize(this.animVals[0]), this.normalize(this.by));
+      else
+        this.animVals[1] = this.to;
+    }
+    this.freezed = this.animVals[this.animVals.length-1];
+
     this.iterBegin = this.startTime;
     animations.push(this);
     for(var i=0; i<this.beginListeners.length ;i++)
@@ -236,26 +228,30 @@ Animator.prototype = {
    * This function is overriden for multiple values attributes (scale, rotate, translate)
    */
   normalize : function(value) {
-    var num = parseFloat(value);
-    if (isNaN(num))
-      return value;
     return value;
   },
 
   /**
    * Sums up two normalized values
    */
-  add : function(from, by) {
-    return ""+(parseFloat(from)+parseFloat(by));
+  add : function(a, b) {
+    return ""+(parseFloat(a)+parseFloat(b));
   },
 
-  /**
-   * Overridden in case of values list
-   */
   getLocalFromTo : function(percent) {
-    if (this.calcMode=="discrete")
-      percent = Math.round(percent);
-    return [this.currFrom, this.currTo, percent];
+    var tValues = this.animVals;
+    if (percent==1)
+      return [tValues[tValues.length-2], tValues[tValues.length-1], percent];
+    if (this.calcMode=="discrete" || !this.isInterpolable(tValues[0],tValues[1])) {
+      var parts = tValues.length;
+      var div = Math.floor(percent*parts);
+      return [tValues[div], tValues[div], 0];
+    } else {
+      var parts = tValues.length-1;
+      var div = Math.floor(percent*parts);
+      var mod = percent%(1/parts);
+      return [tValues[div], tValues[div+1], mod*parts];
+    }
   },
   
   /**
@@ -278,10 +274,21 @@ Animator.prototype = {
       return this.end();
 
     var iteration = parseFloat(this.iteration);
-    if (this.repeatCount && this.repeatCount!="indefinite" && (iteration+percent)>=this.repeatCount)
+    if (this.repeatCount && this.repeatCount!="indefinite" && (iteration+percent)>=this.repeatCount) {
+      if (this.fill=="freeze") {
+        var fromTo = this.getLocalFromTo(this.repeatCount-iteration);
+        this.freezed = this.interpolate(this.normalize(fromTo[0]), this.normalize(fromTo[1]), fromTo[2]);
+      }
       return this.end();
-    if (this.repeatDur && this.repeatDur!="indefinite" && (curTime-this.startTime)>=toMillis(this.repeatDur))
+    }
+    if (this.repeatDur && this.repeatDur!="indefinite" && (curTime-this.startTime)>=toMillis(this.repeatDur)) {
+      if (this.fill=="freeze") {
+        var div = toMillis(this.repeatDur)/dur;
+        var fromTo = this.getLocalFromTo(div-Math.floor(div));
+        this.freezed = this.interpolate(this.normalize(fromTo[0]), this.normalize(fromTo[1]), fromTo[2]);
+      }
       return this.end();
+    }
  
     if (anim.localName=="set")
       return true;
@@ -370,14 +377,10 @@ Animator.prototype = {
           var curVal = this.getCurVal();
           if (!curVal && propDefaults[this.attributeName] )
             curVal = propDefaults[this.attributeName];
-          if (this.from)
-            this.currFrom = this.add(this.normalize(this.from), this.normalize(curVal));
-          else
-            this.currFrom = curVal;
-          if (this.by && this.currFrom)
-            this.currTo = this.add(this.normalize(this.currFrom), this.normalize(this.by));
-          else
-            this.currTo = this.add(this.normalize(this.to), this.normalize(curVal));
+
+          for (var i=0; i<this.animVals.length ;i++)
+            this.animVals[i] = this.add(this.normalize(curVal), this.normalize(this.animVals[i]));
+          this.freezed = this.animVals[this.animVals.length-1];
         }
         this.iterBegin = now;
         for(var i=0; i<this.repeatIterations.length ;i++) {
@@ -445,7 +448,7 @@ Animator.prototype = {
    * freezes the attribute value to the ending value
    */
   freeze : function() {
-    this.step(this.currTo);
+    this.step(this.freezed);
   },
   
   /**
@@ -500,9 +503,9 @@ Animator.prototype = {
       coords[1] = parseFloat(coords[1]);
       return coords;
     };
-    this.add = function(from, by) {
-      var x = from[0]+by[0];
-      var y = from[1]+by[1];
+    this.add = function(a, b) {
+      var x = a[0]+b[0];
+      var y = a[1]+b[1];
       return x+","+y;
     };
     this.isInterpolable = function(from, to) { return true; };
@@ -533,10 +536,10 @@ Animator.prototype = {
         return toRGB(propDefaults[this.attributeName]);
       return rgb;
     }
-    this.add = function(from, by) {
+    this.add = function(a, b) {
       var ret = new Array();
-      for (var i=0; i<from.length ;i++)
-        ret.push(Math.min(from[i],255)+Math.min(by[i],255));
+      for (var i=0; i<a.length ;i++)
+        ret.push(Math.min(a[i],255)+Math.min(b[i],255));
       return ret.join(",");
     };
   },
@@ -578,8 +581,8 @@ Animator.prototype = {
     this.normalize = function(value) {
       var path = createPath(value);
       return path;
-    }
-  },
+    };
+  }
 
 };
 /**
@@ -589,13 +592,9 @@ Animator.prototype = {
  * - corrects and precomputes some values
  * - specializes some functions
  */
-function Animator(anim) {
+function Animator(anim, target) {
   this.anim = anim;
-  var href = anim.getAttributeNS(xlinkns, "href");
-  if (href!="")
-    this.target = document.getElementById(href.substring(1))
-  else
-    this.target = anim.parentNode;
+  this.target = target;
   anim.targetElement = this.target;
   anim.animator = this;
   this.attributeType = anim.getAttribute("attributeType");
@@ -635,26 +634,8 @@ function Animator(anim) {
   this.to = anim.getAttribute("to");
   this.by = anim.getAttribute("by");
   this.values = anim.getAttribute("values");
-  if (this.values) {
-    var tValues = this.values.split(";");
-    this.to = tValues[tValues.length-1];
-    this.getLocalFromTo = function(percent) {
-      var tValues = this.values.split(";");
-      if (percent==1)
-        return [tValues[tValues.length-2], tValues[tValues.length-1], percent];
-      if (this.calcMode=="discrete" || !this.isInterpolable(tValues[0],tValues[1])) {
-        var parts = tValues.length;
-        var div = Math.floor(percent*parts);
-        return [tValues[div], tValues[div], 0];
-      } else {
-        var parts = tValues.length-1;
-        var div = Math.floor(percent*parts);
-        var mod = percent%(1/parts);
-        return [tValues[div], tValues[div+1], mod*parts];
-      }
-    };
-  }
   this.calcMode = anim.getAttribute("calcMode");
+  this.keyTimes = anim.getAttribute("keyTimes");
   this.dur = anim.getAttribute("dur");
   if (this.dur && this.dur!="indefinite")
     this.computedDur = toMillis(this.dur);
@@ -689,7 +670,8 @@ function Animator(anim) {
   var nodeName = anim.localName;
 
   if (nodeName=="animate") {
-
+    
+    // erreur !! tester le target attribute instead
     if ((this.from && (this.from.substring(0,1)=="#" || (this.from.length>5 && this.from.trim().substring(0,4)=="rgb("))) || (this.to && (this.to.substring(0,1)=="#" || (this.to.length>5 && this.to.trim().substring(0,4)=="rgb(") )))
       this.color();
 
@@ -717,7 +699,7 @@ function Animator(anim) {
       };
       try {
         var point = this.path.getPointAtLength(this.path.getTotalLength());  
-        this.to = point.x+","+point.y;
+        this.freezed = point.x+","+point.y;
       } catch(exc) { // a bug ?
         this.freeze = function() {
           var point = this.path.getPointAtLength(this.path.getTotalLength());
@@ -764,6 +746,12 @@ function Animator(anim) {
         coords[1] = parseFloat(coords[1]);
         return coords;
       };
+      this.add = function(a, b) {
+        var ret = new Array();
+        for (var i=0; i<a.length ;i++)
+          ret.push(a[i]*b[i]);
+        return ret.join(",");
+      };
     } else if (this.type=="translate") {
       this.translation();
     } else if (this.type=="rotate") {
@@ -781,6 +769,12 @@ function Animator(anim) {
         }
         return coords;
       };
+      this.add = function(a, b) {
+        var ret = new Array();
+        for (var i=0; i<a.length ;i++)
+          ret.push(a[i]+b[i]);
+        return ret.join(",");
+      };
     }
     
     if (this.type=="scale" || this.type=="rotate") {
@@ -790,12 +784,11 @@ function Animator(anim) {
         this.to = this.normalize(this.to).join(",");
       if (this.by)
         this.by = this.normalize(this.by).join(",");
-      this.add = function(from, by) {
-        var ret = new Array();
-        for (var i=0; i<from.length ;i++)
-          ret.push(from[i]+by[i]);
-        return ret.join(",");
-      };
+      if (this.values) {
+        var tvals = this.values.split(";");
+        for(var i=0; i<tvals.length ;i++)
+          tvals[i] = this.normalize(tvals[i]).join(",");
+      }
       this.interpolate = function(from, to, percent) {
         var ret = new Array();
         for (var i=0; i<from.length ;i++)
@@ -1114,7 +1107,7 @@ var colors = {
   white : [255, 255, 255], 
   whitesmoke : [245, 245, 245], 
   yellow : [255, 255, 0], 
-  yellowgreen : [154, 205, 50],
+  yellowgreen : [154, 205, 50]
 };
 
 var propDefaults = [];
