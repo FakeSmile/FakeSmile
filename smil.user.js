@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.14
+@version 0.1.15
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -216,8 +216,9 @@ Animator.prototype = {
       else
         this.animVals[1] = this.to;
     }
-    this.freezed = this.animVals[this.animVals.length-1];
-    
+    if (this.animVals[this.animVals.length-1])
+      this.freezed = this.animVals[this.animVals.length-1];
+
     if (this.animVals[0]) {
       var cp = new Array();
       var oneVal = this.animVals[0];
@@ -809,6 +810,7 @@ function Animator(anim, target) {
         var tvals = this.values.split(";");
         for(var i=0; i<tvals.length ;i++)
           tvals[i] = this.normalize(tvals[i]).join(",");
+        this.values = tvals.join(";");
       }
       this.interpolate = function(from, to, percent) {
         var ret = new Array();
@@ -919,12 +921,12 @@ function decompose(matrix, type) {
   
   if (type=="scale") {
     var AxB = a*d-b*c;
-    var scaleX = AxB/ModA;
+    var scaleX = AxB==0?0:(AxB/ModA);
     var scaleY = ModB;
     return scaleX+","+scaleY;
   }
   var AdotB = a*b+c*d;
-  var shear = Math.PI/2-Math.acos(AdotB/(ModB*ModA));
+  var shear = Math.PI/2-Math.acos(AdotB==0?0:(AdotB/(ModB*ModA)));
   return (shear*180)/Math.PI;
 }
 
