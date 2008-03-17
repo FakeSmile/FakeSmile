@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1
+@version 0.1.14
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -217,6 +217,25 @@ Animator.prototype = {
         this.animVals[1] = this.to;
     }
     this.freezed = this.animVals[this.animVals.length-1];
+    
+    if (this.animVals[0]) {
+      var cp = new Array();
+      var oneVal = this.animVals[0];
+      var qualified = getUnit(oneVal);
+      cp[0] = qualified[0];
+      this.unit = qualified[1];
+      for(var i=1; i<this.animVals.length ;i++) {
+        var oneVal = this.animVals[i];
+        var qualified = getUnit(oneVal);
+        if (qualified[1]==this.unit)
+          cp[i] = qualified[0];
+        else {
+          cp = this.animVals;
+          break;
+        }
+      }
+      this.animVals = cp;
+    }
 
     this.iterBegin = this.startTime;
     animations.push(this);
@@ -342,6 +361,8 @@ Animator.prototype = {
    * This function is overriden
    */
   step : function(value) {
+    if (this.unit)
+      value += this.unit;
     var attributeName = this.attributeName;
     var attributeType = this.attributeType;
     if (attributeType=="CSS") {
@@ -958,6 +979,21 @@ function createPath(d) {
     path.myNormalizedPathSegList = path.pathSegList;
   }
   return path;
+}
+
+var units = ["grad", "deg", "rad", "kHz", "Hz", "em", "em", "px", "pt", "pc", "mm", "cm", "in", "ms", "s", "%"];
+function getUnit(str) {
+  if (str && str.substring) {
+    for (var i=0; i<units.length ;i++) {
+      var vlen = str.length-units[i].length;
+      if (vlen>0 && str.substring(vlen)==units[i]) {
+        var val = str.substring(0, vlen);
+        if (!isNaN(val))
+          return [val,units[i]];
+      }
+    }
+  }
+  return [str,null];
 }
 
 var colors = {
