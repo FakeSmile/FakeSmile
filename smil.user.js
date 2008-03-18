@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.15
+@version 0.1.16
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -38,44 +38,41 @@ function initSMIL() {
   if (document.documentElement.getAttribute("smiling")=="fake")
     return;
   document.documentElement.setAttribute("smiling", "fake");
-  //if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) {
-  if (true) {
-    
-    var animates = document.getElementsByTagName("*");
-    for(var j=0; j<animates.length ;j++) {
-      var anim = animates.item(j);
-      var namespaceURI = anim.namespaceURI;
-      if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
-          namespaceURI!=smil2ns && namespaceURI!=basicanim2ns && namespaceURI!=splineanim2ns && 
-          namespaceURI!=smil21ns && namespaceURI!=basicanim21ns && namespaceURI!=splineanim21ns)
+
+  var animates = document.getElementsByTagName("*");
+  for(var j=0; j<animates.length ;j++) {
+    var anim = animates.item(j);
+    var namespaceURI = anim.namespaceURI;
+    if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
+        namespaceURI!=smil2ns && namespaceURI!=basicanim2ns && namespaceURI!=splineanim2ns && 
+        namespaceURI!=smil21ns && namespaceURI!=basicanim21ns && namespaceURI!=splineanim21ns)
+      continue;
+    var nodeName = anim.localName;
+    if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
+      var href = anim.getAttributeNS(xlinkns, "href");
+      var target;
+      if (href!=null && href!="")
+        target = document.getElementById(href.substring(1))
+      else
+        target = anim.parentNode;
+      if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1"))
         continue;
-      var nodeName = anim.localName;
-      if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
-        var href = anim.getAttributeNS(xlinkns, "href");
-        var target;
-        if (href!=null && href!="")
-          target = document.getElementById(href.substring(1))
-        else
-          target = anim.parentNode;
-        if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1"))
-          continue;
-        var animator = new Animator(anim, target);
-        animators.push(animator);
-        var id = anim.getAttribute("id");
-        if (id)
-          id2anim[id] = anim;
-      }
+      var animator = new Animator(anim, target);
+      animators.push(animator);
+      var id = anim.getAttribute("id");
+      if (id)
+        id2anim[id] = anim;
     }
-   
-    timeZero = new Date();
-    // I schedule them (after having instanciating them, for sync-based events)
-    // (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
-    for (var i=0; i<animators.length; i++)
-      animators[i].register();
-    
-    // starts the rendering loop
-    window.setInterval(animate, mpf);
   }
+
+  timeZero = new Date();
+  // I schedule them (after having instanciating them, for sync-based events)
+  // (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
+  for (var i=0; i<animators.length; i++)
+    animators[i].register();
+
+  // starts the rendering loop
+  window.setInterval(animate, mpf);
 }
 
 
@@ -203,9 +200,11 @@ Animator.prototype = {
       this.step(this.to);
     this.iteration = 0;
 
-    if (this.values)
+    if (this.values) {
       this.animVals = this.values.split(";");
-    else {
+      for(var i=0; i<this.animVals.length ;i++)
+        this.animVals[i] = this.animVals[i].trim();
+    } else {
       this.animVals = new Array();
       if (this.from)
         this.animVals[0] = this.from;
@@ -216,26 +215,32 @@ Animator.prototype = {
       else
         this.animVals[1] = this.to;
     }
-    if (this.animVals[this.animVals.length-1])
+    if (this.animVals[this.animVals.length-1]) {
       this.freezed = this.animVals[this.animVals.length-1];
 
-    if (this.animVals[0]) {
-      var cp = new Array();
-      var oneVal = this.animVals[0];
-      var qualified = getUnit(oneVal);
-      cp[0] = qualified[0];
-      this.unit = qualified[1];
-      for(var i=1; i<this.animVals.length ;i++) {
-        var oneVal = this.animVals[i];
-        var qualified = getUnit(oneVal);
-        if (qualified[1]==this.unit)
-          cp[i] = qualified[0];
+      if (this.animVals[0]) {
+        if ( (this.animVals[0].substring(0,1)=="#" || colors[this.animVals[0]] || (this.animVals[0].length>5 && this.animVals[0].trim().substring(0,4)=="rgb(")) &&
+             (this.freezed.substring(0,1)=="#" || colors[this.freezed] || (this.freezed.length>5 && this.freezed.trim().substring(0,4)=="rgb(")) )
+          this.color();
         else {
-          cp = this.animVals;
-          break;
+          var cp = new Array();
+          var oneVal = this.animVals[0];
+          var qualified = getUnit(oneVal);
+          cp[0] = qualified[0];
+          this.unit = qualified[1];
+          for(var i=1; i<this.animVals.length ;i++) {
+            var oneVal = this.animVals[i];
+            var qualified = getUnit(oneVal);
+            if (qualified[1]==this.unit)
+              cp[i] = qualified[0];
+            else {
+              cp = this.animVals;
+              break;
+            }
+          }
+          this.animVals = cp;
         }
       }
-      this.animVals = cp;
     }
 
     this.iterBegin = this.startTime;
@@ -258,22 +263,6 @@ Animator.prototype = {
     return ""+(parseFloat(a)+parseFloat(b));
   },
 
-  getLocalFromTo : function(percent) {
-    var tValues = this.animVals;
-    if (percent==1)
-      return [tValues[tValues.length-2], tValues[tValues.length-1], percent];
-    if (this.calcMode=="discrete" || !this.isInterpolable(tValues[0],tValues[1])) {
-      var parts = tValues.length;
-      var div = Math.floor(percent*parts);
-      return [tValues[div], tValues[div], 0];
-    } else {
-      var parts = tValues.length-1;
-      var div = Math.floor(percent*parts);
-      var mod = percent%(1/parts);
-      return [tValues[div], tValues[div+1], mod*parts];
-    }
-  },
-  
   /**
    * Computes and apply the animated value for a given time
    * It returns false if this animation has been stopped (removed from the running array)
@@ -284,7 +273,6 @@ Animator.prototype = {
     var dur = this.computedDur;
     if (isNaN(dur))
       return true;
-    var values = this.values;
 
     var beginTime = this.iterBegin;
 
@@ -295,17 +283,14 @@ Animator.prototype = {
 
     var iteration = parseFloat(this.iteration);
     if (this.repeatCount && this.repeatCount!="indefinite" && (iteration+percent)>=this.repeatCount) {
-      if (this.fill=="freeze") {
-        var fromTo = this.getLocalFromTo(this.repeatCount-iteration);
-        this.freezed = this.interpolate(this.normalize(fromTo[0]), this.normalize(fromTo[1]), fromTo[2]);
-      }
+      if (this.fill=="freeze")
+        this.freezed = this.valueAt(this.repeatCount-iteration);
       return this.end();
     }
     if (this.repeatDur && this.repeatDur!="indefinite" && (curTime-this.startTime)>=toMillis(this.repeatDur)) {
       if (this.fill=="freeze") {
         var div = toMillis(this.repeatDur)/dur;
-        var fromTo = this.getLocalFromTo(div-Math.floor(div));
-        this.freezed = this.interpolate(this.normalize(fromTo[0]), this.normalize(fromTo[1]), fromTo[2]);
+        this.freezed = this.valueAt(div-Math.floor(div));
       }
       return this.end();
     }
@@ -313,8 +298,7 @@ Animator.prototype = {
     if (anim.localName=="set")
       return true;
 
-    var fromTo = this.getLocalFromTo(percent);
-    var curVal = this.interpolate(this.normalize(fromTo[0]), this.normalize(fromTo[1]), fromTo[2]);
+    var curVal = this.valueAt(percent);
 
     this.step(curVal);
     return true;
@@ -332,6 +316,39 @@ Animator.prototype = {
             return false
     }
     return areN;
+  },
+  
+  valueAt : function(percent) {
+    var tValues = this.animVals;
+    if (percent==1)
+      return tValues[tValues.length-1];
+    if (this.calcMode=="discrete" || !this.isInterpolable(tValues[0],tValues[1])) {
+      if (this.keyTimes) {
+        for(var i=1; i<this.keyTimes.length ;i++)
+          if(this.keyTimes[i]>percent)
+            return tValues[i-1];
+        return tValues[tValues.length-1];
+      }
+      var parts = tValues.length;
+      var div = Math.floor(percent*parts);
+      return tValues[div];
+    } else {
+      var index;
+      if (this.keyTimes) {
+        for(var i=1; i<this.keyTimes.length ;i++)
+          if(this.keyTimes[i]>percent) {
+            index = i-1;
+            var t1 = this.keyTimes[index];
+            percent = (percent-t1)/(this.keyTimes[i]-t1);
+            break;
+          }
+      } else {
+        var parts = tValues.length-1;
+        index = Math.floor(percent*parts);
+        percent = (percent%(1/parts))*parts;
+      }
+      return this.interpolate(this.normalize(tValues[index]), this.normalize(tValues[index+1]), percent);
+    }
   },
   
   /**
@@ -509,7 +526,7 @@ Animator.prototype = {
   },
   
   /**
-   * initializes this animator as a translation :
+   * initializes this animator as a translation (x,y) :
    * <animateTransform type="translate"> or
    * <animateMotion> without a path
    */
@@ -517,7 +534,7 @@ Animator.prototype = {
     if (this.by && this.by.indexOf(",")==-1)
       this.by = this.by+",0";
     this.normalize = function(value) {
-      var coords = value.split(",");
+      var coords = value.replace(/,/g," ").replace(/ +/," ").split(/ /);
       if (coords.length==1)
         coords[1] = "0";
         //coords[1] = this.initVal.split(",")[1];
@@ -658,6 +675,17 @@ function Animator(anim, target) {
   this.values = anim.getAttribute("values");
   this.calcMode = anim.getAttribute("calcMode");
   this.keyTimes = anim.getAttribute("keyTimes");
+  if (this.keyTimes) {
+    this.keyTimes = this.keyTimes.split(";");
+    for(var i=0; i<this.keyTimes.length ;i++)
+      this.keyTimes[i] = parseFloat(this.keyTimes[i]);
+    this.keyPoints = anim.getAttribute("keyPoints");
+    if (this.keyPoints) {
+      this.keyPoints = this.keyPoints.split(";");
+      for(var i=0; i<this.keyPoints.length ;i++)
+        this.keyPoints[i] = parseFloat(this.keyPoints[i]);
+    }
+  }
   this.dur = anim.getAttribute("dur");
   if (this.dur && this.dur!="indefinite")
     this.computedDur = toMillis(this.dur);
@@ -691,13 +719,7 @@ function Animator(anim, target) {
   
   var nodeName = anim.localName;
 
-  if (nodeName=="animate") {
-    
-    // erreur !! tester le target attribute instead
-    if ((this.from && (this.from.substring(0,1)=="#" || (this.from.length>5 && this.from.trim().substring(0,4)=="rgb("))) || (this.to && (this.to.substring(0,1)=="#" || (this.to.length>5 && this.to.trim().substring(0,4)=="rgb(") )))
-      this.color();
-
-  } else if (nodeName=="animateColor") {
+  if (nodeName=="animateColor") {
   
     this.color();
 
@@ -714,22 +736,39 @@ function Animator(anim, target) {
     };
     this.path = this.getPath();
     if (this.path) {
-      this.interpolate = function(from, to, percent) {
+      this.valueAt = function(percent) {
         var length = this.path.getTotalLength();
         var point = this.path.getPointAtLength(percent*length);
         return point.x+","+point.y;
       };
-      try {
-        var point = this.path.getPointAtLength(this.path.getTotalLength());  
-        this.freezed = point.x+","+point.y;
-      } catch(exc) { // a bug ?
-        this.freeze = function() {
-          var point = this.path.getPointAtLength(this.path.getTotalLength());
-          this.step(point.x+","+point.y);
-        };
-      }
     } else {
       this.translation();
+    }
+    this.freeze = function() {
+      var val = this.valueAt(1);
+      this.step(val);
+    };
+    if (this.keyPoints && this.keyTimes) {
+      this.pathKeyTimes = this.keyTimes;
+      this.keyTimes = null;
+      this.superValueAt = this.valueAt;
+      this.valueAt = function(percent) {
+        for(var i=1; i<this.keyPoints.length ;i++) {
+          var fakePC = this.keyPoints[this.keyPoints.length-1]
+          if (this.pathKeyTimes[i]>percent) {
+            var pt = this.keyPoints[i-1];
+            if (this.calcMode=="discrete")
+              fakePC = pt;
+            else {
+              var t1 = this.pathKeyTimes[i-1];
+              percent = (percent-t1)/(this.pathKeyTimes[i]-t1);
+              fakePC = pt+((this.keyPoints[i]-pt)*percent)
+            }
+            break;
+          }
+        }
+        return this.superValueAt(fakePC);
+      };
     }
     this.step = function(value) {
       var attributeName = this.attributeName;
