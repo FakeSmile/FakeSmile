@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.16
+@version 0.1.17
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -14,6 +14,7 @@
 // ==/UserScript==
 
 var mpf = 25; // milliseconds per frame
+var splinePrecision = 25;
 
 var svgns="http://www.w3.org/2000/svg";
 var smilanimns="http://www.w3.org/2001/smil-animation";
@@ -347,8 +348,30 @@ Animator.prototype = {
         index = Math.floor(percent*parts);
         percent = (percent%(1/parts))*parts;
       }
+      if (this.calcMode=="spline")
+        percent = this.spline(percent, index);
       return this.interpolate(this.normalize(tValues[index]), this.normalize(tValues[index+1]), percent);
     }
+  },
+
+  spline : function(percent, index) {
+    var path = this.keySplines[index];
+    var tot = path.getTotalLength();
+    var step = tot/splinePrecision;
+    for(var i=0; i<=tot ;i+=step) {
+      var pt = path.getPointAtLength(i);
+      if(pt.x>percent) {
+        var pt1 = path.getPointAtLength(i-step);
+        percent -= pt1.x;
+        percent /= pt.x-pt1.x;
+        return pt1.y+((pt.y-pt1.y)*percent);
+      }
+    }
+    var pt = path.getPointAtLength(tot);
+    var pt1 = path.getPointAtLength(tot-step);
+    percent -= pt1.x;
+    percent /= pt.x-pt1.x;
+    return pt1.y+((pt.y-pt1.y)*percent);
   },
   
   /**
@@ -367,12 +390,11 @@ Animator.prototype = {
       var tto = to.split(" ");
       var ret = new Array();
       for(var i=0; i<tto.length ;i++)
-        ret[i] = this.interpolate(tfrom[i], tto[i], percent);
+        ret[i] = parseFloat(tfrom[i])+((tto[i]-tfrom[i])*percent);
       return ret.join(" ");
     }
     return parseFloat(from)+((to-from)*percent);
   },
-
 
   /**
    * apply a value to the attribute the animator is linked to
@@ -685,6 +707,12 @@ function Animator(anim, target) {
       for(var i=0; i<this.keyPoints.length ;i++)
         this.keyPoints[i] = parseFloat(this.keyPoints[i]);
     }
+  }
+  this.keySplines = anim.getAttribute("keySplines");
+  if (this.keySplines) {
+    this.keySplines = this.keySplines.split(";");
+    for(var i=0; i<this.keySplines.length ;i++)
+      this.keySplines[i] = createPath("M 0 0 C "+this.keySplines[i]+" 1 1");
   }
   this.dur = anim.getAttribute("dur");
   if (this.dur && this.dur!="indefinite")
