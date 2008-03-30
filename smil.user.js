@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.17
+@version 0.1.18
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -12,7 +12,11 @@
 // @name           smil
 // @namespace      svg.smil
 // ==/UserScript==
-
+/*
+Copyright (C) 2008  David Leunen.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details <http://www.gnu.org/licenses/>.
+*/
 var mpf = 25; // milliseconds per frame
 var splinePrecision = 25;
 
@@ -56,7 +60,7 @@ function initSMIL() {
         target = document.getElementById(href.substring(1))
       else
         target = anim.parentNode;
-      if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1"))
+      if (target==null || (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")))
         continue;
       var animator = new Animator(anim, target);
       animators.push(animator);
@@ -123,7 +127,13 @@ Animator.prototype = {
     var timeValues = timeValueList.split(";");
     for(var i=0; i<timeValues.length ;i++) {
       var time = timeValues[i].trim();
-      if(isNaN(parseInt(time))) {
+      if (time.length>11 && time.substring(0,10)=="wallclock(") {
+        var wallclock = new Date();
+        wallclock.setISO8601(time.substring(10,time.length-1));
+        var now = new Date();
+        var diff = wallclock-now;
+        func.call(me, diff);
+      } else if(isNaN(parseInt(time))) {
         var offset = 0;
         var io = time.indexOf("+");
         if (io==-1)
@@ -185,10 +195,12 @@ Animator.prototype = {
       window.setTimeout(call, offset);
       return;
     }
-
     this.startTime = new Date();
-    if (offset && offset<0)
+    if (offset && offset<0) {
       this.startTime.setTime(this.startTime.getTime()+offset);
+      if (this.startTime<timeZero)
+        return;
+    }
     this.stop();
     this.running = true;
     var initVal = this.getCurVal();
@@ -908,7 +920,6 @@ function Animator(anim, target) {
 }
 
 
-
 /**
  * can be called at any time.
  * It's the main loop
@@ -931,7 +942,6 @@ function animate() {
   // for that, f(t) must return the value, and we must have a map for object(?).attributeType.attributeName -> value
   // then f(t) cannot return false when autostoping -> we must find another mechanism
 }
-
 
 
 /**
@@ -1224,36 +1234,29 @@ propDefaults["font-stretch"] = "normal";
 propDefaults["font-style"] = "normal";
 propDefaults["font-variant"] = "normal";
 propDefaults["font-weight"] = "normal";
-
 propDefaults["direction"] = "ltr";
 propDefaults["letter-spacing"] = "normal";
 propDefaults["text-decoration"] = "none";
 propDefaults["unicode-bidi"] = "normal";
 propDefaults["word-spacing"] = "normal";
-
 propDefaults["clip"] = "auto";
 propDefaults["color"] = "depends on user agent";
 propDefaults["cursor"] = "auto";
 propDefaults["display"] = "inline";
 propDefaults["overflow"] = "hidden";
 propDefaults["visibility"] = "visible";
-
 propDefaults["clip-path"] = "none";
 propDefaults["clip-rule"] = "nonzero";
 propDefaults["mask"] = "none";
 propDefaults["opacity"] = "1";
-
 propDefaults["enable-background"] = "accumulate";
 propDefaults["filter"] = "none";
 propDefaults["flood-color"] = "black";
 propDefaults["flood-opacity"] = "1";
 propDefaults["lighting-color"] = "white";
-
 propDefaults["stop-color"] = "black";
 propDefaults["stop-opacity"] = "1";
-
 propDefaults["pointer-events"] = "visiblePainted";
-
 propDefaults["color-interpolation"] = "sRGB";
 propDefaults["color-interpolation-filters"] = "linearRGB";
 propDefaults["color-profile"] = "auto";
@@ -1275,7 +1278,6 @@ propDefaults["stroke-miterlimit"] = "4";
 propDefaults["stroke-opacity"] = "1";
 propDefaults["stroke-width"] = "1";
 propDefaults["text-rendering"] = "auto";
-
 propDefaults["alignment-baseline"] = "0";
 propDefaults["baseline-shift"] = "baseline";
 propDefaults["dominant-baseline"] = "auto";
@@ -1294,5 +1296,28 @@ function funk(func, obj, arg) {
  */
 String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ""); };
 
+Date.prototype.setISO8601 = function (string) {
+  var regexp = "([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
+    "(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
+    "(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?";
+  var d = string.match(new RegExp(regexp));
+
+  var offset = 0;
+  var date = new Date(d[1], 0, 1);
+
+  if (d[3]) { date.setMonth(d[3] - 1); }
+  if (d[5]) { date.setDate(d[5]); }
+  if (d[7]) { date.setHours(d[7]); }
+  if (d[8]) { date.setMinutes(d[8]); }
+  if (d[10]) { date.setSeconds(d[10]); }
+  if (d[12]) { date.setMilliseconds(Number("0." + d[12]) * 1000); }
+  if (d[14]) {
+    offset = (Number(d[16]) * 60) + Number(d[17]);
+    offset *= ((d[15] == '-') ? 1 : -1);
+  }
+  offset -= date.getTimezoneOffset();
+  time = (Number(date) + (offset * 60 * 1000));
+  this.setTime(Number(time));
+}
 
 window.addEventListener("load", initSMIL, false);
