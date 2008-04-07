@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.18
+@version 0.1.19
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -28,6 +28,8 @@ var splineanim2ns="http://www.w3.org/2001/SMIL20/SplineAnimation";
 var smil21ns="http://www.w3.org/2005/SMIL21";
 var basicanim21ns="http://www.w3.org/2005/SMIL21/BasicAnimation";
 var splineanim21ns="http://www.w3.org/2005/SMIL21/SplineAnimation";
+var smil3ns="http://www.w3.org/ns/SMIL30";
+var timesheetns="http://www.w3.org/2007/07/SMIL30/Timesheets";
 var xlinkns="http://www.w3.org/1999/xlink";
 
 var animators = new Array();  // all animators
@@ -44,31 +46,7 @@ function initSMIL() {
     return;
   document.documentElement.setAttribute("smiling", "fake");
 
-  var animates = document.getElementsByTagName("*");
-  for(var j=0; j<animates.length ;j++) {
-    var anim = animates.item(j);
-    var namespaceURI = anim.namespaceURI;
-    if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
-        namespaceURI!=smil2ns && namespaceURI!=basicanim2ns && namespaceURI!=splineanim2ns && 
-        namespaceURI!=smil21ns && namespaceURI!=basicanim21ns && namespaceURI!=splineanim21ns)
-      continue;
-    var nodeName = anim.localName;
-    if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
-      var href = anim.getAttributeNS(xlinkns, "href");
-      var target;
-      if (href!=null && href!="")
-        target = document.getElementById(href.substring(1))
-      else
-        target = anim.parentNode;
-      if (target==null || (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")))
-        continue;
-      var animator = new Animator(anim, target);
-      animators.push(animator);
-      var id = anim.getAttribute("id");
-      if (id)
-        id2anim[id] = anim;
-    }
-  }
+  smile(document);
 
   timeZero = new Date();
   // I schedule them (after having instanciating them, for sync-based events)
@@ -80,6 +58,57 @@ function initSMIL() {
   window.setInterval(animate, mpf);
 }
 
+function smile(animating) {
+  var request = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("MSXML2.XMLHTTP.3.0");
+  request.overrideMimeType('text/xml');
+
+  var animates = animating.getElementsByTagName("*");
+  for(var j=0; j<animates.length ;j++) {
+    var anim = animates.item(j);
+    var namespaceURI = anim.namespaceURI;
+    var nodeName = anim.localName;
+    if (nodeName=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
+      request.open("GET", anim.getAttribute("href"), false);
+      request.send(null);
+      if (request.status == 200) {
+        var docTimeSheet = request.responseXML;
+        smile(docTimeSheet);
+      }
+      continue;
+    }
+    if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
+        namespaceURI!=smil2ns && namespaceURI!=basicanim2ns && namespaceURI!=splineanim2ns && 
+        namespaceURI!=smil21ns && namespaceURI!=basicanim21ns && namespaceURI!=splineanim21ns &&
+        namespaceURI!=smil3ns && namespaceURI!=timesheetns)
+      continue;
+    if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
+      var href = anim.getAttributeNS(xlinkns, "href");
+      var select = anim.getAttribute("select");
+      var target;
+      if (href!=null && href!="")
+        target = document.getElementById(href.substring(1));
+      else if (select)
+        target = selects(select);
+      else {
+        target = anim.parentNode;
+        if (target.localName=="item")
+          target = document.getElementById(target.getAttribute("select"));
+      }
+      if (target==null || (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")))
+        continue;
+      var animator = new Animator(anim, target);
+      animators.push(animator);
+      var id = anim.getAttribute("id");
+      if (id)
+        id2anim[id] = anim;
+    }
+  }
+}
+
+function selects(selector) {
+  if (selector.substring(0,1)=="#")
+    return document.getElementById(selector.substring(1));
+}
 
 function getEventTargetById(id, ref) {
   var element = null;
