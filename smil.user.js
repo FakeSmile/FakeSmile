@@ -67,13 +67,11 @@ function smile(animating) {
     var anim = animates.item(j);
     var namespaceURI = anim.namespaceURI;
     var nodeName = anim.localName;
-    if (nodeName=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
+    if (nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
       request.open("GET", anim.getAttribute("href"), false);
       request.send(null);
-      if (request.status == 200) {
-        var docTimeSheet = request.responseXML;
-        smile(docTimeSheet);
-      }
+      if (request.status == 200)
+        smile(request.responseXML);
       continue;
     }
     if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
@@ -91,8 +89,8 @@ function smile(animating) {
         target = selects(select);
       else {
         target = anim.parentNode;
-        if (target.localName=="item")
-          target = document.getElementById(target.getAttribute("select"));
+        if (target.localName=="item" && target.namespaceURI!=timesheetns)
+          target = selects(target.getAttribute("select"));
       }
       if (target==null || (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")))
         continue;
