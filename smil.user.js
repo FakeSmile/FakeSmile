@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.21
+@version 0.1.22
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -99,24 +99,29 @@ function smile(animating) {
 }
 
 function getTargets(anim) {
-  var selector = anim.getAttribute("select");
-  if (selector)
-    return select(selector);
+  if (anim.hasAttribute("select"))
+    return select(anim);
   var href = anim.getAttributeNS(xlinkns, "href");
   if (href!=null && href!="")
     return [document.getElementById(href.substring(1))];
   else {
     var target = anim.parentNode;
-    if (target.localName=="item" && target.namespaceURI!=timesheetns)
-      return select(target.getAttribute("select"));
+    if (target.localName=="item" && (target.namespaceURI==timesheetns || target.namespaceURI==smil3ns))
+      return select(target);
     return [target];
   }
   return [];
 }
 
-function select(selector) {
-  var v = $(selector);
-  return v;
+function select(element) {
+  var selector = element.getAttribute("select");
+  var parent = element.parentNode;
+  while(parent && parent.nodeType==1) {
+    if (parent.localName=="item" && (parent.namespaceURI==timesheetns || parent.namespaceURI==smil3ns))
+      selector = parent.getAttribute("select")+" "+selector;
+    parent = parent.parentNode;
+  }
+  return $(selector);
 }
 
 function getEventTargetsById(id, ref) {
