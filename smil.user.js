@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.19
+@version 0.1.21
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -80,22 +80,17 @@ function smile(animating) {
         namespaceURI!=smil3ns && namespaceURI!=timesheetns)
       continue;
     if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
-      var href = anim.getAttributeNS(xlinkns, "href");
-      var select = anim.getAttribute("select");
-      var target;
-      if (href!=null && href!="")
-        target = document.getElementById(href.substring(1));
-      else if (select)
-        target = selects(select);
-      else {
-        target = anim.parentNode;
-        if (target.localName=="item" && target.namespaceURI!=timesheetns)
-          target = selects(target.getAttribute("select"));
+      var targets = getTargets(anim);
+      var elAnimators = new Array();
+      for(var i=0; i<targets.length ;i++) {
+        var target = targets[i];
+        if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1"))
+          continue;
+        var animator = new Animator(anim, target, i);
+        animators.push(animator);
+        elAnimators[i] = animator;
       }
-      if (target==null || (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")))
-        continue;
-      var animator = new Animator(anim, target);
-      animators.push(animator);
+      anim.animators = elAnimators;
       var id = anim.getAttribute("id");
       if (id)
         id2anim[id] = anim;
@@ -103,12 +98,28 @@ function smile(animating) {
   }
 }
 
-function selects(selector) {
-  if (selector.substring(0,1)=="#")
-    return document.getElementById(selector.substring(1));
+function getTargets(anim) {
+  var selector = anim.getAttribute("select");
+  if (selector)
+    return select(selector);
+  var href = anim.getAttributeNS(xlinkns, "href");
+  if (href!=null && href!="")
+    return [document.getElementById(href.substring(1))];
+  else {
+    var target = anim.parentNode;
+    if (target.localName=="item" && target.namespaceURI!=timesheetns)
+      return select(target.getAttribute("select"));
+    return [target];
+  }
+  return [];
 }
 
-function getEventTargetById(id, ref) {
+function select(selector) {
+  var v = $(selector);
+  return v;
+}
+
+function getEventTargetsById(id, ref) {
   var element = null;
   if (id=="prev") {
     element = ref.previousSibling;
@@ -121,14 +132,15 @@ function getEventTargetById(id, ref) {
     element = id2anim[id]; // because getElementById doesn't returns smil elems in gecko
   if (element==null)
     return null;
-  if (element.animator)
-    return element.animator;
-  return element;
+  if (element.animators)
+    return element.animators;
+  return [element];
 }
 
 
 /**
  * corresponds to one <animate>, <set>, <animateTransform>, ...
+ * (there can be more than one Animator for each element)
  */
 Animator.prototype = {
 
@@ -170,19 +182,23 @@ Animator.prototype = {
           time = time.substring(0, io).trim();
         }
         io = time.indexOf(".");
-        var element;
+        var elements = new Array();
         if (io==-1) {
-          element = this.target;
+          elements = [this.target];
         } else {
           var id = time.substring(0, io);
-          element = getEventTargetById(id, this.anim);
+          if (id.indexOf("index(")==0)
+            id = id.substring(6,id.length-1)+this.index;
+          elements = getEventTargetsById(id, this.anim);
         }
-        if(element==null)
-          continue;
         var event = time.substring(io+1);
-        
         var call = funk(func, me, offset);
-        element.addEventListener(event, call, false);
+        for(var j=0; j<elements.length ;j++) {
+          var element = elements[j];
+          if(element==null)
+            continue;
+          element.addEventListener(event, call, false);
+        }
       } else {
         time = toMillis(time);
         func.call(me, time);
@@ -692,11 +708,11 @@ Animator.prototype = {
  * - corrects and precomputes some values
  * - specializes some functions
  */
-function Animator(anim, target) {
+function Animator(anim, target, index) {
   this.anim = anim;
   this.target = target;
-  anim.targetElement = this.target;
-  anim.animator = this;
+  this.index = index;
+  anim.targetElement = target;
   this.attributeType = anim.getAttribute("attributeType");
   this.attributeName = anim.getAttribute("attributeName");
   if (this.attributeType!="CSS" && this.attributeType!="XML") {
