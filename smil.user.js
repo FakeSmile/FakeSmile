@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.23
+@version 0.1.24
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -80,7 +80,6 @@ function initSMIL() {
   if (document.documentElement.getAttribute("smiling")=="fake")
     return;
   document.documentElement.setAttribute("smiling", "fake");
-
   smile(document);
 
   timeZero = new Date();
@@ -104,10 +103,13 @@ function smile(animating) {
     var nodeName = anim.localName;
     if ((nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") ||
         ((namespaceURI==timesheetns || namespaceURI==smil3ns) && nodeName=="timesheet") ) {
-      request.open("GET", anim.getAttribute(nodeName=="timesheet"?"src":"href"), false);
-      request.send(null);
-      if (request.status == 200)
-        smile(request.responseXML);
+      var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
+      if(src && src.length > 0) {
+        request.open("GET", src, false);
+        request.send(null);
+        if (request.status == 200)
+          smile(request.responseXML);
+      }
       continue;
     }
     if (namespaceURI!=svgns && namespaceURI!=smilanimns && 
@@ -120,7 +122,7 @@ function smile(animating) {
       var elAnimators = new Array();
       for(var i=0; i<targets.length ;i++) {
         var target = targets[i];
-        if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1"))
+        if (target.namespaceURI==svgns && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1") && (animating==document || document.implementation.hasFeature("http://www.w3.org/2007/07/SMIL30/Timesheets", "3.0")))
           continue;
         var animator = new Animator(anim, target, i);
         animators.push(animator);
@@ -260,7 +262,7 @@ Animator.prototype = {
       //if (animAtt && animAtt.animVal)
       //  return animAtt.animVal.value;
       //else
-        return this.target.getAttribute(this.attributeName);
+        return this.target.getAttributeNS(this.namespace, this.attributeName);
     }
   },
   
@@ -511,7 +513,7 @@ Animator.prototype = {
       //if (animAtt && animAtt.animVal)
       //  animAtt.animVal.value = value;
       //else
-      	this.target.setAttribute(attributeName, value);
+      	this.target.setAttributeNS(this.namespace, attributeName, value);
     }
   },
   
@@ -761,6 +763,23 @@ function Animator(anim, target, index) {
       this.attributeType = "CSS";
     else
       this.attributeType = "XML";
+  }
+  if (this.attributeType=="XML" && this.attributeName) {
+    this.namespace = null;
+    var chColon = this.attributeName.indexOf(":");
+    if(chColon != -1) {
+      var prefix = this.attributeName.substring(0,chColon);
+      this.attributeName = this.attributeName.substring(chColon+1);
+      var node = target;
+      while(node && node.nodeType==1) {
+        var ns = node.getAttributeNS("http://www.w3.org/2000/xmlns/", prefix);;
+        if (ns) {
+          this.namespace = ns;
+          break;
+        }
+        node = node.parentNode;
+      }
+    }
   }
     
   if (this.attributeName=="d")
