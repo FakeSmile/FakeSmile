@@ -57,11 +57,7 @@ var splinePrecision = 25;
 var svgns="http://www.w3.org/2000/svg";
 var smilanimns="http://www.w3.org/2001/smil-animation";
 var smil2ns="http://www.w3.org/2001/SMIL20";
-var basicanim2ns="http://www.w3.org/2001/SMIL20/BasicAnimation";
-var splineanim2ns="http://www.w3.org/2001/SMIL20/SplineAnimation";
 var smil21ns="http://www.w3.org/2005/SMIL21";
-var basicanim21ns="http://www.w3.org/2005/SMIL21/BasicAnimation";
-var splineanim21ns="http://www.w3.org/2005/SMIL21/SplineAnimation";
 var smil3ns="http://www.w3.org/ns/SMIL30";
 var timesheetns="http://www.w3.org/2007/07/SMIL30/Timesheets";
 var xlinkns="http://www.w3.org/1999/xlink";
@@ -113,7 +109,6 @@ function smile(animating) {
     var anim = animates.item(j);
     var namespaceURI = anim.namespaceURI;
     var nodeName = anim.localName;
-    if(nodeName==null) continue;
     if ((nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") ||
         ((namespaceURI==timesheetns || namespaceURI==smil3ns) && nodeName=="timesheet") ) {
       var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
@@ -127,16 +122,13 @@ function smile(animating) {
       }
       continue;
     }
-    if ((namespaceURI==svgns && !document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) ||
-        (namespaceURI==smilanimns && !document.implementation.hasFeature("", "1.1")) ||
-        (namespaceURI==smil2ns && !document.implementation.hasFeature(smil2ns, "2.0")) ||
-        (namespaceURI==basicanim2ns && !document.implementation.hasFeature(basicanim2ns, "2.0")) ||
-        (namespaceURI==splineanim2ns && !document.implementation.hasFeature(splineanim2ns, "2.0")) ||
-        (namespaceURI==smil21ns && !document.implementation.hasFeature(smil21ns, "2.1")) ||
-        (namespaceURI==basicanim21ns && !document.implementation.hasFeature(basicanim21ns, "2.1")) ||
-        (namespaceURI==splineanim21ns && !document.implementation.hasFeature(splineanim21ns, "2.1")) ||
-        (namespaceURI==smil3ns && !document.implementation.hasFeature(smil3ns, "3.0")) ||
-        (namespaceURI==timesheetns && !document.implementation.hasFeature(timesheetns, "1.0"))) {
+    var impl = document.implementation;
+    if ((namespaceURI==svgns && !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) ||
+        (namespaceURI==smilanimns && !impl.hasFeature(smilanimns, "1.1")) ||
+        (namespaceURI==smil2ns && !impl.hasFeature(smil2ns, "2.0")) ||
+        (namespaceURI==smil21ns && !impl.hasFeature(smil21ns, "2.1")) ||
+        (namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0")) ||
+        (namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0"))) {
       if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
         var targets = getTargets(anim);
         var elAnimators = new Array();
@@ -1442,7 +1434,4 @@ Date.prototype.setISO8601 = function (string) {
   this.setTime(Number(time));
 }
 
-if(window.addEventListener) 
-  window.addEventListener("load", initSMIL, false);
-else 
-  document.documentElement.addEventListener("load", initSMIL, false);
+window.addEventListener("load", initSMIL, false);
