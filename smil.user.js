@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.25
+@version 0.1.27
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -13,8 +13,7 @@
 // @namespace      svg.smil
 // ==/UserScript==
 
-/*
- * jQuery 1.2.4 - New Wave Javascript
+/* jQuery 1.2.4 - New Wave Javascript
  *
  * Copyright (c) 2008 John Resig (jquery.com)
  * Dual licensed under the MIT (MIT-LICENSE.txt)
@@ -548,8 +547,13 @@ Animator.prototype = {
           if (!curVal && propDefaults[this.attributeName] )
             curVal = propDefaults[this.attributeName];
 
-          for (var i=0; i<this.animVals.length ;i++)
-            this.animVals[i] = this.add(this.normalize(curVal), this.normalize(this.animVals[i]));
+          if (this.by && !this.from) {
+            this.animVals[0] = curVal;
+            this.animVals[1] = this.add(this.normalize(curVal), this.normalize(this.by));
+          } else {
+            for (var i=0; i<this.animVals.length ;i++)
+              this.animVals[i] = this.add(this.normalize(curVal), this.normalize(this.animVals[i]));
+          }
           this.freezed = this.animVals[this.animVals.length-1];
         }
         this.iterBegin = now;
@@ -821,6 +825,9 @@ function Animator(anim, target, index) {
   this.to = anim.getAttribute("to");
   this.by = anim.getAttribute("by");
   this.values = anim.getAttribute("values");
+  this.values = this.values.trim();
+  if (this.values.substring(this.values.length-1)==";")
+    this.values = this.values.substring(0, this.values.length-1);
   this.calcMode = anim.getAttribute("calcMode");
   this.keyTimes = anim.getAttribute("keyTimes");
   if (this.keyTimes) {
