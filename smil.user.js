@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.27
+@version 0.1.28
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -825,9 +825,11 @@ function Animator(anim, target, index) {
   this.to = anim.getAttribute("to");
   this.by = anim.getAttribute("by");
   this.values = anim.getAttribute("values");
-  this.values = this.values.trim();
-  if (this.values.substring(this.values.length-1)==";")
-    this.values = this.values.substring(0, this.values.length-1);
+  if (this.values) {
+    this.values = this.values.trim();
+    if (this.values.substring(this.values.length-1)==";")
+      this.values = this.values.substring(0, this.values.length-1);
+  }
   this.calcMode = anim.getAttribute("calcMode");
   this.keyTimes = anim.getAttribute("keyTimes");
   if (this.keyTimes) {
