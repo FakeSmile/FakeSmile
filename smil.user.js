@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.28
+@version 0.1.29
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -284,6 +284,8 @@ Animator.prototype = {
   begin : function(offset) {
     if (this.restart=="never" || (this.running && this.restart=="whenNotActive"))
       return;
+    if (this.running)
+      this.finish();
     if (offset!=null && offset>=0) {
       var me = this;
       var myself = this.begin;
