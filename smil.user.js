@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.29
+@version 0.1.30
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -358,6 +358,9 @@ Animator.prototype = {
     animations.push(this);
     for(var i=0; i<this.beginListeners.length ;i++)
       this.beginListeners[i].call();
+    var onbegin = this.anim.getAttribute("onbegin");
+    if (onbegin)
+      eval(onbegin);
   },
   
   /**
@@ -563,6 +566,9 @@ Animator.prototype = {
           if (this.repeatIterations[i]==this.iteration)
             this.repeatListeners[i].call();
         }
+        var onrepeat = this.anim.getAttribute("onrepeat");
+        if (onrepeat)
+          eval(onrepeat);
       } 
     }
     return true;
@@ -604,6 +610,9 @@ Animator.prototype = {
     if (this.running) {
       for(var i=0; i<this.endListeners.length ;i++)
         this.endListeners[i].call();
+      var onend = this.anim.getAttribute("onend");
+      if (onend)
+        eval(onend);
       this.running = false;
     }
     return kept;
