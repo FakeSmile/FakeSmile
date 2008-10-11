@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.30
+@version 0.1.31
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -1454,4 +1454,6 @@ Date.prototype.setISO8601 = function (string) {
   this.setTime(Number(time));
 }
 
-window.addEventListener("load", initSMIL, false);
+try {
+  window.addEventListener("load", initSMIL, false);
+} catch(exc) {}
