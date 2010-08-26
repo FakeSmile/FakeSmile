@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.34
+@version 0.1.35
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.d.free.fr/fakesmile
@@ -72,7 +72,8 @@ function xhrCallback() {
 function smile(animating) {
   var request = window.XMLHttpRequest ? new XMLHttpRequest() : window.ActiveXObject ? new ActiveXObject("MSXML2.XMLHTTP.3.0") : null;
   if(request) {
-    request.overrideMimeType('text/xml');
+    if(request.overrideMimeType)
+      request.overrideMimeType('text/xml');
     request.onreadystatechange = xhrCallback;
   }
 
