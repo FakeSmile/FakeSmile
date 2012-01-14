@@ -1040,9 +1040,13 @@ function animate() {
       if (!animations[i].f(curTime))
         i--;
     } catch(exc) {
-      if (exc.message!="Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIDOMSVGPathElement.getTotalLength]") {
+      if (exc.message!=="Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIDOMSVGPathElement.getTotalLength]") {
+        // NOTE: in IE, console object is only available when Developer tools are open
+        if(window.console && console.log) {
         console.log(exc);
-        //alert(exc);
+        } else {
+          alert(exc);
+        }
       }
     }
   }
