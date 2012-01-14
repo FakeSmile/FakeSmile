@@ -4,9 +4,9 @@
 @version 0.1.35
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
-@homepageURL http://leunen.d.free.fr/fakesmile
+@homepageURL http://leunen.me/fakesmile/
 @ff_min_version 2.0
-@ff_max_version 3.0.*
+@ff_max_version 3.*
 */
 // ==UserScript==
 // @name           smil
@@ -35,7 +35,7 @@ var timesheetns="http://www.w3.org/2007/07/SMIL30/Timesheets";
 var xlinkns="http://www.w3.org/1999/xlink";
 
 var animators = new Array();  // all animators
-var id2anim = new Object();   // id -> animation elements (workaround a gecko bug)
+var id2anim = new Object();   // id -> animation elements (workaround a Gecko bug)
 var animations = new Array(); // running animators
 var timeZero;
 
@@ -156,7 +156,7 @@ function getEventTargetsById(id, ref) {
   if (element==null)
     element = document.getElementById(id);
   if (element==null)
-    element = id2anim[id]; // because getElementById doesn't returns smil elems in gecko
+    element = id2anim[id]; // because getElementById doesn't returns SMIL elements in Gecko
   if (element==null)
     return null;
   if (element.animators)
@@ -184,7 +184,7 @@ Animator.prototype = {
     if (end)
       this.schedule(end, this.finish);
   },
-  
+
   /**
    * schedules the starts or ends of the animation
    */
@@ -232,7 +232,7 @@ Animator.prototype = {
       }
     }
   },
-  
+
   /**
    * Remembers the initial value of the animated attribute.
    * This function is overriden
@@ -249,7 +249,7 @@ Animator.prototype = {
         return this.target.getAttributeNS(this.namespace, this.attributeName);
     }
   },
-  
+
   /**
    * starts the animation
    * I mean the very beginning of it.
@@ -278,7 +278,7 @@ Animator.prototype = {
     var initVal = this.getCurVal();
     this.realInitVal = initVal;
     // TODO
-    // I should get the inherited value here (getPresentationAttribute is not supported) 
+    // I should get the inherited value here (getPresentationAttribute is not supported)
     if (!initVal && propDefaults[this.attributeName] )
       initVal = propDefaults[this.attributeName];
     if (this.anim.nodeName=="set")
@@ -336,7 +336,7 @@ Animator.prototype = {
     if (onbegin)
       eval(onbegin);
   },
-  
+
   /**
    * This function is overriden for multiple values attributes (scale, rotate, translate)
    */
@@ -357,7 +357,7 @@ Animator.prototype = {
    */
   f : function(curTime) {
     var anim = this.anim;
-    
+
     var dur = this.computedDur;
     if (isNaN(dur))
       return true;
@@ -382,7 +382,7 @@ Animator.prototype = {
       }
       return this.end();
     }
- 
+
     if (anim.localName=="set")
       return true;
 
@@ -391,7 +391,7 @@ Animator.prototype = {
     this.step(curVal);
     return true;
   },
-  
+
   isInterpolable : function(from, to) {
     var areN = (!isNaN(from) && !isNaN(to));
     if (!areN && from.trim().indexOf(" ")!=-1 && to.trim().indexOf(" ")!=-1) {
@@ -401,11 +401,11 @@ Animator.prototype = {
       if (tfrom.length==tto.length)
         for(var i=0; i<tto.length ;i++)
           if(!this.isInterpolable(tfrom[i], tto[i]))
-            return false
+            return false;
     }
     return areN;
   },
-  
+
   valueAt : function(percent) {
     var tValues = this.animVals;
     if (percent==1)
@@ -460,11 +460,11 @@ Animator.prototype = {
     percent /= pt.x-pt1.x;
     return pt1.y+((pt.y-pt1.y)*percent);
   },
-  
+
   /**
    * Does the interpolation
    * This function is overriden
-   */ 
+   */
   interpolate : function(from, to, percent) {
     if (!this.isInterpolable(from, to)) {
       if (percent<.5)
@@ -493,7 +493,7 @@ Animator.prototype = {
     var attributeName = this.attributeName;
     var attributeType = this.attributeType;
     if (attributeType=="CSS") {
-      // workaround a gecko and webkit bug
+      // workaround a Gecko and WebKit bug
       if (attributeName=="font-size" && !isNaN(value))
         value += "px";
       this.target.style.setProperty(attributeName, value, "");
@@ -502,10 +502,10 @@ Animator.prototype = {
       //if (animAtt && animAtt.animVal)
       //  animAtt.animVal.value = value;
       //else
-      	this.target.setAttributeNS(this.namespace, attributeName, value);
+        this.target.setAttributeNS(this.namespace, attributeName, value);
     }
   },
-  
+
   /**
    * Normal end of the animation:
    * it restarts if repeatCount
@@ -543,11 +543,11 @@ Animator.prototype = {
         var onrepeat = this.anim.getAttribute("onrepeat");
         if (onrepeat)
           eval(onrepeat);
-      } 
+      }
     }
     return true;
   },
-  
+
   /**
    * Real stop of the animation (it doesn't repeat)
    * Freezes or remove the animated value
@@ -591,7 +591,7 @@ Animator.prototype = {
     }
     return kept;
   },
-  
+
   /**
    * Removes this animation from the running array
    */
@@ -609,7 +609,7 @@ Animator.prototype = {
   freeze : function() {
     this.step(this.freezed);
   },
-  
+
   /**
    * Adds a listener to this animation beginning or ending
    */
@@ -624,7 +624,7 @@ Animator.prototype = {
       this.repeatIterations.push(iteration);
     }
   },
-  
+
   /**
    * Returns the path linked to this animateMotion
    */
@@ -642,9 +642,9 @@ Animator.prototype = {
         return pathEl;
       }
     }
-    return null;  
+    return null;
   },
-  
+
   /**
    * initializes this animator as a translation (x,y) :
    * <animateTransform type="translate"> or
@@ -674,11 +674,11 @@ Animator.prototype = {
       return x+","+y;
     };
   },
-  
+
   /**
    * initializes this animator as a color animation :
    * <animateColor> or
-   * <animate> ona a color attribute
+   * <animate> on a color attribute
    */
   color : function() {
     this.isInterpolable = function(from, to) { return true; };
@@ -733,7 +733,7 @@ Animator.prototype = {
             path += " C "+x1+","+y1+" "+x2+","+y2+" ";
           }
           path += x+","+y;
-        } 
+        }
       }
       return path;
     };
@@ -744,8 +744,9 @@ Animator.prototype = {
   }
 
 };
+
 /**
- * contructor : 
+ * contructor :
  * - initializes
  * - gets the attributes
  * - corrects and precomputes some values
@@ -772,7 +773,7 @@ function Animator(anim, target, index) {
       this.attributeName = this.attributeName.substring(chColon+1);
       var node = target;
       while(node && node.nodeType==1) {
-        var ns = node.getAttributeNS("http://www.w3.org/2000/xmlns/", prefix);;
+        var ns = node.getAttributeNS("http://www.w3.org/2000/xmlns/", prefix);
         if (ns) {
           this.namespace = ns;
           break;
@@ -781,7 +782,7 @@ function Animator(anim, target, index) {
       }
     }
   }
-    
+
   if (this.attributeName=="d")
     this.d();
   else if (this.attributeName=="points") {
@@ -849,7 +850,7 @@ function Animator(anim, target, index) {
     if (!this.computedDur || this.computedDur<this.computedMin)
       this.computedDur = this.computedMin;
   }
-  
+
   this.fill = anim.getAttribute("fill");
   this.type = anim.getAttribute("type");
   this.repeatCount = anim.getAttribute("repeatCount");
@@ -859,20 +860,20 @@ function Animator(anim, target, index) {
   this.restart = anim.getAttribute("restart");
   if (!this.restart)
     this.restart = "always";
-  
+
   this.beginListeners = new Array();
   this.endListeners = new Array();
   this.repeatListeners = new Array();
   this.repeatIterations = new Array();
-  
+
   var nodeName = anim.localName;
 
   if (nodeName=="animateColor") {
-  
+
     this.color();
 
   } else if (nodeName=="animateMotion") {
-  
+
     this.isInterpolable = function(from, to) { return true; };
     this.getCurVal = function() {
       var curTrans = this.target.transform;
@@ -923,9 +924,9 @@ function Animator(anim, target, index) {
       value = "translate("+value+")";
       this.target.setAttribute("transform", value);
     };
-    
+
   } else if (nodeName=="animateTransform") {
-  
+
     this.isInterpolable = function(from, to) { return true; };
     this.getCurVal = function() {
       var type = this.type;
@@ -944,7 +945,7 @@ function Animator(anim, target, index) {
           return 0;
       }
     };
-    
+
     if (this.type=="scale") {
       this.normalize = function(value) {
         value = value.replace(/,/g," ");
@@ -985,7 +986,7 @@ function Animator(anim, target, index) {
         return ret.join(",");
       };
     }
-    
+
     if (this.type=="scale" || this.type=="rotate") {
       if (this.from)
         this.from = this.normalize(this.from).join(",");
@@ -995,7 +996,7 @@ function Animator(anim, target, index) {
         this.by = this.normalize(this.by).join(",");
       if (this.values) {
         var tvals = this.values.split(";");
-        for(var i=0; i<tvals.length ;i++)
+        for (var i=0; i<tvals.length ;i++)
           tvals[i] = this.normalize(tvals[i]).join(",");
         this.values = tvals.join(";");
       }
@@ -1006,24 +1007,24 @@ function Animator(anim, target, index) {
         return ret.join(",");
       };
     }
-    
+
     this.step = function(value) {
       var attributeName = this.attributeName;
       value = this.type+"("+value+")";
       this.target.setAttribute(attributeName, value);
     };
   }
-  
+
   var me = this;
   this.anim.beginElement = function() { me.begin(); return true; };
   this.anim.beginElementAt = function(offset) { me.begin(offset*1000); return true; };
   this.anim.endElement = function() { me.finish(); return true; };
   this.anim.endElementAt = function(offset) { me.finish(offset*1000); return true; };
-  
+
   this.anim.getStartTime = function() { return parseFloat(me.iterBegin-timeZero)/1000; };
-  this.anim.getCurrentTime = function() { 
+  this.anim.getCurrentTime = function() {
     var now = new Date();
-    return parseFloat(now-me.iterBegin)/1000; 
+    return parseFloat(now-me.iterBegin)/1000;
   };
 }
 
@@ -1060,7 +1061,7 @@ function toMillis(time) {
   time = time.trim();
   var len = time.length;
   var io = time.indexOf(":");
-  
+
   if (io!=-1) {
     var clockVal = time.split(":");
     var len = clockVal.length;
@@ -1086,24 +1087,25 @@ function toMillis(time) {
   return parseFloat(time);
 }
 
+
 /**
  * decompose a matrix into its scale or translate or rotate or skew
  */
 function decompose(matrix, type) {
   if (type=="translate")
     return matrix.e+","+matrix.f;
-    
+
   var a = matrix.a;
   var b = matrix.b;
   var c = matrix.c;
   var d = matrix.d;
-  
+
   if (type=="rotate")
     return Math.atan2(c,a)+",0,0";
-  
+
   var ModA = Math.sqrt(a*a+c*c);
   var ModB = Math.sqrt(b*b+d*d);
-  
+
   if (type=="scale") {
     var AxB = a*d-b*c;
     var scaleX = AxB==0?0:(AxB/ModA);
@@ -1114,6 +1116,7 @@ function decompose(matrix, type) {
   var shear = Math.PI/2-Math.acos(AdotB==0?0:(AdotB/(ModB*ModA)));
   return (shear*180)/Math.PI;
 }
+
 
 /**
  * Convert a rgb(), #XXX, #XXXXXX or named color
@@ -1154,10 +1157,11 @@ function toRGB(color) {
   }
 }
 
+
 function createPath(d) {
   var path = document.createElementNS(svgns, "path");
   path.setAttribute("d", d);
-  try { 
+  try {
     if (path.normalizedPathSegList)
       path.myNormalizedPathSegList = path.normalizedPathSegList;
   } catch(exc) {}
@@ -1167,6 +1171,7 @@ function createPath(d) {
   }
   return path;
 }
+
 
 var units = ["grad", "deg", "rad", "kHz", "Hz", "em", "em", "px", "pt", "pc", "mm", "cm", "in", "ms", "s", "%"];
 function getUnit(str) {
@@ -1184,152 +1189,152 @@ function getUnit(str) {
 }
 
 var colors = {
-  aliceblue : [240, 248, 255], 
-  antiquewhite : [250, 235, 215], 
-  aqua : [0, 255, 255], 
-  aquamarine : [127, 255, 212], 
-  azure : [240, 255, 255], 
-  beige : [245, 245, 220], 
-  bisque : [255, 228, 196], 
-  black : [0, 0, 0], 
-  blanchedalmond : [255, 235, 205], 
-  blue : [0, 0, 255], 
-  blueviolet : [138, 43, 226], 
-  brown : [165, 42, 42], 
-  burlywood : [222, 184, 135], 
-  cadetblue : [95, 158, 160], 
-  chartreuse : [127, 255, 0], 
-  chocolate : [210, 105, 30], 
-  coral : [255, 127, 80], 
-  cornflowerblue : [100, 149, 237], 
-  cornsilk : [255, 248, 220], 
-  crimson : [220, 20, 60], 
-  cyan : [0, 255, 255], 
-  darkblue : [0, 0, 139], 
-  darkcyan : [0, 139, 139], 
-  darkgoldenrod : [184, 134, 11], 
-  darkgray : [169, 169, 169], 
-  darkgreen : [0, 100, 0], 
-  darkgrey : [169, 169, 169], 
-  darkkhaki : [189, 183, 107], 
-  darkmagenta : [139, 0, 139], 
-  darkolivegreen : [85, 107, 47], 
-  darkorange : [255, 140, 0], 
-  darkorchid : [153, 50, 204], 
-  darkred : [139, 0, 0], 
-  darksalmon : [233, 150, 122], 
-  darkseagreen : [143, 188, 143], 
-  darkslateblue : [72, 61, 139], 
-  darkslategray : [47, 79, 79], 
-  darkslategrey : [47, 79, 79], 
-  darkturquoise : [0, 206, 209], 
-  darkviolet : [148, 0, 211], 
-  deeppink : [255, 20, 147], 
-  deepskyblue : [0, 191, 255], 
-  dimgray : [105, 105, 105], 
-  dimgrey : [105, 105, 105], 
-  dodgerblue : [30, 144, 255], 
-  firebrick : [178, 34, 34], 
-  floralwhite : [255, 250, 240], 
-  forestgreen : [34, 139, 34], 
-  fuchsia : [255, 0, 255], 
-  gainsboro : [220, 220, 220], 
-  ghostwhite : [248, 248, 255], 
-  gold : [255, 215, 0], 
-  goldenrod : [218, 165, 32], 
-  gray : [128, 128, 128], 
-  grey : [128, 128, 128], 
-  green : [0, 128, 0], 
-  greenyellow : [173, 255, 47], 
-  honeydew : [240, 255, 240], 
-  hotpink : [255, 105, 180], 
-  indianred : [205, 92, 92], 
-  indigo : [75, 0, 130], 
-  ivory : [255, 255, 240], 
-  khaki : [240, 230, 140], 
-  lavender : [230, 230, 250], 
-  lavenderblush : [255, 240, 245], 
-  lawngreen : [124, 252, 0], 
-  lemonchiffon : [255, 250, 205], 
-  lightblue : [173, 216, 230], 
-  lightcoral : [240, 128, 128], 
-  lightcyan : [224, 255, 255], 
-  lightgoldenrodyellow : [250, 250, 210], 
-  lightgray : [211, 211, 211], 
-  lightgreen : [144, 238, 144], 
-  lightgrey : [211, 211, 211], 
-  lightpink : [255, 182, 193], 
-  lightsalmon : [255, 160, 122], 
-  lightseagreen : [32, 178, 170], 
-  lightskyblue : [135, 206, 250], 
-  lightslategray : [119, 136, 153], 
-  lightslategrey : [119, 136, 153], 
-  lightsteelblue : [176, 196, 222], 
-  lightyellow : [255, 255, 224], 
-  lime : [0, 255, 0], 
-  limegreen : [50, 205, 50], 
-  linen : [250, 240, 230], 
-  magenta : [255, 0, 255], 
-  maroon : [128, 0, 0], 
-  mediumaquamarine : [102, 205, 170], 
-  mediumblue : [0, 0, 205], 
-  mediumorchid : [186, 85, 211], 
-  mediumpurple : [147, 112, 219], 
-  mediumseagreen : [60, 179, 113], 
-  mediumslateblue : [123, 104, 238], 
-  mediumspringgreen : [0, 250, 154], 
-  mediumturquoise : [72, 209, 204], 
-  mediumvioletred : [199, 21, 133], 
-  midnightblue : [25, 25, 112], 
-  mintcream : [245, 255, 250], 
-  mistyrose : [255, 228, 225], 
-  moccasin : [255, 228, 181], 
-  navajowhite : [255, 222, 173], 
-  navy : [0, 0, 128], 
-  oldlace : [253, 245, 230], 
-  olive : [128, 128, 0], 
-  olivedrab : [107, 142, 35], 
-  orange : [255, 165, 0], 
-  orangered : [255, 69, 0], 
-  orchid : [218, 112, 214], 
-  palegoldenrod : [238, 232, 170], 
-  palegreen : [152, 251, 152], 
-  paleturquoise : [175, 238, 238], 
-  palevioletred : [219, 112, 147], 
-  papayawhip : [255, 239, 213], 
-  peachpuff : [255, 218, 185], 
-  peru : [205, 133, 63], 
-  pink : [255, 192, 203], 
-  plum : [221, 160, 221], 
-  powderblue : [176, 224, 230], 
-  purple : [128, 0, 128], 
-  red : [255, 0, 0], 
-  rosybrown : [188, 143, 143], 
-  royalblue : [65, 105, 225], 
-  saddlebrown : [139, 69, 19], 
-  salmon : [250, 128, 114], 
-  sandybrown : [244, 164, 96], 
-  seagreen : [46, 139, 87], 
-  seashell : [255, 245, 238], 
-  sienna : [160, 82, 45], 
-  silver : [192, 192, 192], 
-  skyblue : [135, 206, 235], 
-  slateblue : [106, 90, 205], 
-  slategray : [112, 128, 144], 
-  slategrey : [112, 128, 144], 
-  snow : [255, 250, 250], 
-  springgreen : [0, 255, 127], 
-  steelblue : [70, 130, 180], 
-  tan : [210, 180, 140], 
-  teal : [0, 128, 128], 
-  thistle : [216, 191, 216], 
-  tomato : [255, 99, 71], 
-  turquoise : [64, 224, 208], 
-  violet : [238, 130, 238], 
-  wheat : [245, 222, 179], 
-  white : [255, 255, 255], 
-  whitesmoke : [245, 245, 245], 
-  yellow : [255, 255, 0], 
+  aliceblue : [240, 248, 255],
+  antiquewhite : [250, 235, 215],
+  aqua : [0, 255, 255],
+  aquamarine : [127, 255, 212],
+  azure : [240, 255, 255],
+  beige : [245, 245, 220],
+  bisque : [255, 228, 196],
+  black : [0, 0, 0],
+  blanchedalmond : [255, 235, 205],
+  blue : [0, 0, 255],
+  blueviolet : [138, 43, 226],
+  brown : [165, 42, 42],
+  burlywood : [222, 184, 135],
+  cadetblue : [95, 158, 160],
+  chartreuse : [127, 255, 0],
+  chocolate : [210, 105, 30],
+  coral : [255, 127, 80],
+  cornflowerblue : [100, 149, 237],
+  cornsilk : [255, 248, 220],
+  crimson : [220, 20, 60],
+  cyan : [0, 255, 255],
+  darkblue : [0, 0, 139],
+  darkcyan : [0, 139, 139],
+  darkgoldenrod : [184, 134, 11],
+  darkgray : [169, 169, 169],
+  darkgreen : [0, 100, 0],
+  darkgrey : [169, 169, 169],
+  darkkhaki : [189, 183, 107],
+  darkmagenta : [139, 0, 139],
+  darkolivegreen : [85, 107, 47],
+  darkorange : [255, 140, 0],
+  darkorchid : [153, 50, 204],
+  darkred : [139, 0, 0],
+  darksalmon : [233, 150, 122],
+  darkseagreen : [143, 188, 143],
+  darkslateblue : [72, 61, 139],
+  darkslategray : [47, 79, 79],
+  darkslategrey : [47, 79, 79],
+  darkturquoise : [0, 206, 209],
+  darkviolet : [148, 0, 211],
+  deeppink : [255, 20, 147],
+  deepskyblue : [0, 191, 255],
+  dimgray : [105, 105, 105],
+  dimgrey : [105, 105, 105],
+  dodgerblue : [30, 144, 255],
+  firebrick : [178, 34, 34],
+  floralwhite : [255, 250, 240],
+  forestgreen : [34, 139, 34],
+  fuchsia : [255, 0, 255],
+  gainsboro : [220, 220, 220],
+  ghostwhite : [248, 248, 255],
+  gold : [255, 215, 0],
+  goldenrod : [218, 165, 32],
+  gray : [128, 128, 128],
+  grey : [128, 128, 128],
+  green : [0, 128, 0],
+  greenyellow : [173, 255, 47],
+  honeydew : [240, 255, 240],
+  hotpink : [255, 105, 180],
+  indianred : [205, 92, 92],
+  indigo : [75, 0, 130],
+  ivory : [255, 255, 240],
+  khaki : [240, 230, 140],
+  lavender : [230, 230, 250],
+  lavenderblush : [255, 240, 245],
+  lawngreen : [124, 252, 0],
+  lemonchiffon : [255, 250, 205],
+  lightblue : [173, 216, 230],
+  lightcoral : [240, 128, 128],
+  lightcyan : [224, 255, 255],
+  lightgoldenrodyellow : [250, 250, 210],
+  lightgray : [211, 211, 211],
+  lightgreen : [144, 238, 144],
+  lightgrey : [211, 211, 211],
+  lightpink : [255, 182, 193],
+  lightsalmon : [255, 160, 122],
+  lightseagreen : [32, 178, 170],
+  lightskyblue : [135, 206, 250],
+  lightslategray : [119, 136, 153],
+  lightslategrey : [119, 136, 153],
+  lightsteelblue : [176, 196, 222],
+  lightyellow : [255, 255, 224],
+  lime : [0, 255, 0],
+  limegreen : [50, 205, 50],
+  linen : [250, 240, 230],
+  magenta : [255, 0, 255],
+  maroon : [128, 0, 0],
+  mediumaquamarine : [102, 205, 170],
+  mediumblue : [0, 0, 205],
+  mediumorchid : [186, 85, 211],
+  mediumpurple : [147, 112, 219],
+  mediumseagreen : [60, 179, 113],
+  mediumslateblue : [123, 104, 238],
+  mediumspringgreen : [0, 250, 154],
+  mediumturquoise : [72, 209, 204],
+  mediumvioletred : [199, 21, 133],
+  midnightblue : [25, 25, 112],
+  mintcream : [245, 255, 250],
+  mistyrose : [255, 228, 225],
+  moccasin : [255, 228, 181],
+  navajowhite : [255, 222, 173],
+  navy : [0, 0, 128],
+  oldlace : [253, 245, 230],
+  olive : [128, 128, 0],
+  olivedrab : [107, 142, 35],
+  orange : [255, 165, 0],
+  orangered : [255, 69, 0],
+  orchid : [218, 112, 214],
+  palegoldenrod : [238, 232, 170],
+  palegreen : [152, 251, 152],
+  paleturquoise : [175, 238, 238],
+  palevioletred : [219, 112, 147],
+  papayawhip : [255, 239, 213],
+  peachpuff : [255, 218, 185],
+  peru : [205, 133, 63],
+  pink : [255, 192, 203],
+  plum : [221, 160, 221],
+  powderblue : [176, 224, 230],
+  purple : [128, 0, 128],
+  red : [255, 0, 0],
+  rosybrown : [188, 143, 143],
+  royalblue : [65, 105, 225],
+  saddlebrown : [139, 69, 19],
+  salmon : [250, 128, 114],
+  sandybrown : [244, 164, 96],
+  seagreen : [46, 139, 87],
+  seashell : [255, 245, 238],
+  sienna : [160, 82, 45],
+  silver : [192, 192, 192],
+  skyblue : [135, 206, 235],
+  slateblue : [106, 90, 205],
+  slategray : [112, 128, 144],
+  slategrey : [112, 128, 144],
+  snow : [255, 250, 250],
+  springgreen : [0, 255, 127],
+  steelblue : [70, 130, 180],
+  tan : [210, 180, 140],
+  teal : [0, 128, 128],
+  thistle : [216, 191, 216],
+  tomato : [255, 99, 71],
+  turquoise : [64, 224, 208],
+  violet : [238, 130, 238],
+  wheat : [245, 222, 179],
+  white : [255, 255, 255],
+  whitesmoke : [245, 245, 245],
+  yellow : [255, 255, 0],
   yellowgreen : [154, 205, 50]
 };
 
@@ -1426,7 +1431,7 @@ Date.prototype.setISO8601 = function (string) {
   offset -= date.getTimezoneOffset();
   time = (Number(date) + (offset * 60 * 1000));
   this.setTime(Number(time));
-}
+};
 
 try {
   window.addEventListener("load", initSMIL, false);
