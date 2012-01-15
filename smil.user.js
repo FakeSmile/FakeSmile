@@ -760,7 +760,10 @@ function Animator(anim, target, index) {
   this.attributeType = anim.getAttribute("attributeType");
   this.attributeName = anim.getAttribute("attributeName");
   if (this.attributeType!="CSS" && this.attributeType!="XML") {
-    if(propDefaults[this.attributeName] && this.target.style)
+    // attributeType not specified, default stands for "auto"
+    // "The implementation must first search through the list of CSS properties for a matching property name"
+    // http://www.w3.org/TR/SVG11/animate.html#AttributeTypeAttribute
+    if(propDefaults[this.attributeName] && this.target.style.getPropertyValue(this.attributeName))
       this.attributeType = "CSS";
     else
       this.attributeType = "XML";
