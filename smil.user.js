@@ -1348,67 +1348,68 @@ var colors = {
   yellowgreen : [154, 205, 50]
 };
 
-var propDefaults = [];
-propDefaults["font"] = "see individual properties";
-propDefaults["font-family"] = "Arial";
-propDefaults["font-size"] = "medium";
-propDefaults["font-size-adjust"] = "none";
-propDefaults["font-stretch"] = "normal";
-propDefaults["font-style"] = "normal";
-propDefaults["font-variant"] = "normal";
-propDefaults["font-weight"] = "normal";
-propDefaults["direction"] = "ltr";
-propDefaults["letter-spacing"] = "normal";
-propDefaults["text-decoration"] = "none";
-propDefaults["unicode-bidi"] = "normal";
-propDefaults["word-spacing"] = "normal";
-propDefaults["clip"] = "auto";
-propDefaults["color"] = "depends on user agent";
-propDefaults["cursor"] = "auto";
-propDefaults["display"] = "inline";
-propDefaults["overflow"] = "hidden";
-propDefaults["visibility"] = "visible";
-propDefaults["clip-path"] = "none";
-propDefaults["clip-rule"] = "nonzero";
-propDefaults["mask"] = "none";
-propDefaults["opacity"] = "1";
-propDefaults["enable-background"] = "accumulate";
-propDefaults["filter"] = "none";
-propDefaults["flood-color"] = "black";
-propDefaults["flood-opacity"] = "1";
-propDefaults["lighting-color"] = "white";
-propDefaults["stop-color"] = "black";
-propDefaults["stop-opacity"] = "1";
-propDefaults["pointer-events"] = "visiblePainted";
-propDefaults["color-interpolation"] = "sRGB";
-propDefaults["color-interpolation-filters"] = "linearRGB";
-propDefaults["color-profile"] = "auto";
-propDefaults["color-rendering"] = "auto";
-propDefaults["fill"] = "black";
-propDefaults["fill-opacity"] = "1";
-propDefaults["fill-rule"] = "nonzero";
-propDefaults["image-rendering"] = "auto";
-propDefaults["marker-end"] = "none";
-propDefaults["marker-mid"] = "none";
-propDefaults["marker-start"] = "none";
-propDefaults["shape-rendering"] = "auto";
-propDefaults["stroke"] = "none";
-propDefaults["stroke-dasharray"] = "none";
-propDefaults["stroke-dashoffset"] = "0";
-propDefaults["stroke-linecap"] = "butt";
-propDefaults["stroke-linejoin"] = "miter";
-propDefaults["stroke-miterlimit"] = "4";
-propDefaults["stroke-opacity"] = "1";
-propDefaults["stroke-width"] = "1";
-propDefaults["text-rendering"] = "auto";
-propDefaults["alignment-baseline"] = "0";
-propDefaults["baseline-shift"] = "baseline";
-propDefaults["dominant-baseline"] = "auto";
-propDefaults["glyph-orientation-horizontal"] = "0";
-propDefaults["glyph-orientation-vertical"] = "auto";
-propDefaults["kerning"] = "auto";
-propDefaults["text-anchor"] = "start";
-propDefaults["writing-mode"] = "lr-tb";
+var propDefaults = {
+  "font" : "see individual properties",
+  "font-family" : "Arial",
+  "font-size" : "medium",
+  "font-size-adjust" : "none",
+  "font-stretch" : "normal",
+  "font-style" : "normal",
+  "font-variant" : "normal",
+  "font-weight" : "normal",
+  "direction" : "ltr",
+  "letter-spacing" : "normal",
+  "text-decoration" : "none",
+  "unicode-bidi" : "normal",
+  "word-spacing" : "normal",
+  "clip" : "auto",
+  "color" : "depends on user agent",
+  "cursor" : "auto",
+  "display" : "inline",
+  "overflow" : "hidden",
+  "visibility" : "visible",
+  "clip-path" : "none",
+  "clip-rule" : "nonzero",
+  "mask" : "none",
+  "opacity" : "1",
+  "enable-background" : "accumulate",
+  "filter" : "none",
+  "flood-color" : "black",
+  "flood-opacity" : "1",
+  "lighting-color" : "white",
+  "stop-color" : "black",
+  "stop-opacity" : "1",
+  "pointer-events" : "visiblePainted",
+  "color-interpolation" : "sRGB",
+  "color-interpolation-filters" : "linearRGB",
+  "color-profile" : "auto",
+  "color-rendering" : "auto",
+  "fill" : "black",
+  "fill-opacity" : "1",
+  "fill-rule" : "nonzero",
+  "image-rendering" : "auto",
+  "marker-end" : "none",
+  "marker-mid" : "none",
+  "marker-start" : "none",
+  "shape-rendering" : "auto",
+  "stroke" : "none",
+  "stroke-dasharray" : "none",
+  "stroke-dashoffset" : "0",
+  "stroke-linecap" : "butt",
+  "stroke-linejoin" : "miter",
+  "stroke-miterlimit" : "4",
+  "stroke-opacity" : "1",
+  "stroke-width" : "1",
+  "text-rendering" : "auto",
+  "alignment-baseline" : "0",
+  "baseline-shift" : "baseline",
+  "dominant-baseline" : "auto",
+  "glyph-orientation-horizontal" : "0",
+  "glyph-orientation-vertical" : "auto",
+  "kerning" : "auto",
+  "text-anchor" : "start",
+  "writing-mode" : "lr-tb"
+};
 
 function funk(func, obj, arg) {
   return function() {func.call(obj, arg);};
