@@ -70,13 +70,7 @@ function xhrCallback() {
 }
 
 function smile(animating) {
-  var request = window.XMLHttpRequest ? new XMLHttpRequest() : window.ActiveXObject ? new ActiveXObject("MSXML2.XMLHTTP.3.0") : null;
-  if(request) {
-    if(request.overrideMimeType)
-      request.overrideMimeType('text/xml');
-    request.onreadystatechange = xhrCallback;
-  }
-
+  var request = null;
   var animates = animating.getElementsByTagName("*");
   for(var j=0; j<animates.length ;j++) {
     var anim = animates.item(j);
@@ -86,6 +80,15 @@ function smile(animating) {
         ((namespaceURI==timesheetns || namespaceURI==smil3ns) && nodeName=="timesheet") ) {
       var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
       if(src && src.length > 0) {
+        if(!request){
+          // lazy initialization of XHR
+          request = window.XMLHttpRequest ? new XMLHttpRequest() : window.ActiveXObject ? new ActiveXObject("MSXML2.XMLHTTP.3.0") : null;
+          if(request) {
+            if(request.overrideMimeType)
+              request.overrideMimeType('text/xml');
+            request.onreadystatechange = xhrCallback;
+          }
+        }
         if(request) {
           request.open("GET", src, false);
           request.send(null);
