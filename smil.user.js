@@ -135,7 +135,6 @@ function getTargets(anim) {
       return select(target);
     return [target];
   }
-  return [];
 }
 
 function select(element) {
