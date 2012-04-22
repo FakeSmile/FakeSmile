@@ -1418,10 +1418,13 @@ function funk(func, obj, arg) {
  * removes the leading and trailing spaces chars from the string
  * NOTE: part of ES5, so use feature detection
  *       http://stackoverflow.com/questions/2308134/trim-in-javascript-not-working-in-ie/#2308157
+ * NOTE: the regular expression used in fallback is placed in global namespace for performance
+ *       (as it's far better having a "singleton" than bloating every string instance)
  */
 if(typeof String.prototype.trim !== "function") {
+  window._trimRegExp = new RegExp("^\\s+|\\s+$", "g");
   String.prototype.trim = function() {
-    return this.replace(/^\s+|\s+$/g, "");
+    return this.replace(window._trimRegExp, "");
   };
 }
 
@@ -1429,6 +1432,8 @@ if(typeof String.prototype.trim !== "function") {
  * set an ISO 8601 timestamp to a Date object
  * NOTE: as ES5 doesn't define precisely what "parse" should do, we run a sample to test for feasibility
  *       http://stackoverflow.com/questions/2479714/does-javascript-ecmascript3-support-iso8601-date-parsing/#2481375
+ * NOTE: the regular expression used in fallback is placed in global namespace for performance
+ *       (as it's far better having a "singleton" than bloating every date instance)
  */
 if(!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
   // parse did well, use the native implementation
@@ -1436,11 +1441,13 @@ if(!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
     this.setTime(Date.parse(string));
   };
 }else{
-  Date.prototype.setISO8601 = function (string) {
-    var regexp = "([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
+  window._setISO8601RegExp = new RegExp(
+      "([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
       "(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
-      "(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?";
-    var d = string.match(new RegExp(regexp));
+      "(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?"
+  );
+  Date.prototype.setISO8601 = function (string) {
+    var d = window._setISO8601RegExp.exec(string);
 
     var offset = 0;
     var date = new Date(d[1], 0, 1);
