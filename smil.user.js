@@ -1416,32 +1416,50 @@ function funk(func, obj, arg) {
 
 /**
  * removes the leading and trailing spaces chars from the string
+ * NOTE: part of ES5, so use feature detection
+ *       http://stackoverflow.com/questions/2308134/trim-in-javascript-not-working-in-ie/#2308157
  */
-String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ""); };
+if(typeof String.prototype.trim !== "function") {
+  String.prototype.trim = function() {
+    return this.replace(/^\s+|\s+$/g, "");
+  };
+}
 
-Date.prototype.setISO8601 = function (string) {
-  var regexp = "([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
-    "(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
-    "(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?";
-  var d = string.match(new RegExp(regexp));
+/**
+ * set an ISO 8601 timestamp to a Date object
+ * NOTE: as ES5 doesn't define precisely what "parse" should do, we run a sample to test for feasibility
+ *       http://stackoverflow.com/questions/2479714/does-javascript-ecmascript3-support-iso8601-date-parsing/#2481375
+ */
+if(!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
+  // parse did well, use the native implementation
+  Date.prototype.setISO8601 = function (string) {
+    this.setTime(Date.parse(string));
+  };
+}else{
+  Date.prototype.setISO8601 = function (string) {
+    var regexp = "([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
+      "(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
+      "(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?";
+    var d = string.match(new RegExp(regexp));
 
-  var offset = 0;
-  var date = new Date(d[1], 0, 1);
+    var offset = 0;
+    var date = new Date(d[1], 0, 1);
 
-  if (d[3]) { date.setMonth(d[3] - 1); }
-  if (d[5]) { date.setDate(d[5]); }
-  if (d[7]) { date.setHours(d[7]); }
-  if (d[8]) { date.setMinutes(d[8]); }
-  if (d[10]) { date.setSeconds(d[10]); }
-  if (d[12]) { date.setMilliseconds(Number("0." + d[12]) * 1000); }
-  if (d[14]) {
-    offset = (Number(d[16]) * 60) + Number(d[17]);
-    offset *= ((d[15] == '-') ? 1 : -1);
-  }
-  offset -= date.getTimezoneOffset();
-  time = (Number(date) + (offset * 60 * 1000));
-  this.setTime(Number(time));
-};
+    if (d[3]) { date.setMonth(d[3] - 1); }
+    if (d[5]) { date.setDate(d[5]); }
+    if (d[7]) { date.setHours(d[7]); }
+    if (d[8]) { date.setMinutes(d[8]); }
+    if (d[10]) { date.setSeconds(d[10]); }
+    if (d[12]) { date.setMilliseconds(Number("0." + d[12]) * 1000); }
+    if (d[14]) {
+      offset = (Number(d[16]) * 60) + Number(d[17]);
+      offset *= ((d[15] == '-') ? 1 : -1);
+    }
+    offset -= date.getTimezoneOffset();
+    time = (Number(date) + (offset * 60 * 1000));
+    this.setTime(Number(time));
+  };
+}
 
 try {
   window.addEventListener("load", initSMIL, false);
