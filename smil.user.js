@@ -22,6 +22,7 @@ Copyright 2009, The Dojo Foundation
 
 /*
 Copyright 2008 David Leunen
+Copyright 2012 Helder Magalhaes
 */
 var mpf = 25; // milliseconds per frame
 var splinePrecision = 25;
@@ -1048,7 +1049,7 @@ function animate() {
       if (exc.message!=="Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIDOMSVGPathElement.getTotalLength]") {
         // NOTE: in IE, console object is only available when Developer tools are open
         if(window.console && console.log) {
-        console.log(exc);
+          console.log(exc);
         } else {
           alert(exc);
         }
