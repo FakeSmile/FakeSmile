@@ -24,7 +24,17 @@ Copyright 2009, The Dojo Foundation
 Copyright 2008 David Leunen
 Copyright 2012 Helder Magalhaes
 */
-var mpf = 25; // milliseconds per frame
+/**
+ * Milliseconds Per Frame - relation between smoothness and CPU usage:
+ * 40 for 25fps ("cine"-look, low CPU usage);
+ * ~33 for 30fps (mild resources usage, best for most LCD displays);
+ * 25 for 40fps (smoother animation, higher CPU usage);
+ * ~17 for 60fps (high CPU usage, not recommended).
+ * References:
+ * http://en.wikipedia.org/wiki/Frame_rate#Frame_rates_in_film_and_television
+ * http://knol.google.com/k/refresh-rate-frames-per-second-and-response-times-in-lcd-and-crt-technologies
+ */
+var mpf = 33;
 var splinePrecision = 25;
 
 var svgns="http://www.w3.org/2000/svg";
