@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.35
+@version 0.1.47
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
@@ -24,6 +24,7 @@ Copyright 2009, The Dojo Foundation
 Copyright 2008 David Leunen
 Copyright 2012 Helder Magalhaes
 */
+
 /**
  * Milliseconds Per Frame - relation between smoothness and CPU usage:
  * 40 for 25fps ("cine"-look, low CPU usage);
@@ -51,8 +52,8 @@ var animations = new Array(); // running animators
 var timeZero;
 
 /**
- * if declarative animations are not supported,
- * the document animations are fetched and registered
+ * If declarative animations are not supported,
+ * the document animations are fetched and registered.
  */
 function initSMIL() {
   if (document.documentElement.getAttribute("smiling")=="fake")
@@ -179,14 +180,14 @@ function getEventTargetsById(id, ref) {
 
 
 /**
- * corresponds to one <animate>, <set>, <animateTransform>, ...
+ * Corresponds to one <animate>, <set>, <animateTransform>, ...
  * (there can be more than one Animator for each element)
  */
 Animator.prototype = {
 
   /**
    * Registers the animation.
-   * It schedules the beginings and endings
+   * It schedules the beginnings and endings.
    */
   register : function() {
     var begin = this.anim.getAttribute("begin");
@@ -199,7 +200,7 @@ Animator.prototype = {
   },
 
   /**
-   * schedules the starts or ends of the animation
+   * Schedules the starts or ends of the animation.
    */
   schedule : function(timeValueList, func) {
     var me = this; // I do that because if I use "this", the addEventListener understands the event source
@@ -248,7 +249,7 @@ Animator.prototype = {
 
   /**
    * Remembers the initial value of the animated attribute.
-   * This function is overriden
+   * This function is overriden.
    */
   getCurVal : function() {
     if (this.attributeType=="CSS") {
@@ -264,9 +265,9 @@ Animator.prototype = {
   },
 
   /**
-   * starts the animation
+   * Starts the animation.
    * I mean the very beginning of it.
-   * not called when repeating
+   * Not called when repeating.
    */
   begin : function(offset) {
     if (this.restart=="never" || (this.running && this.restart=="whenNotActive"))
@@ -351,22 +352,22 @@ Animator.prototype = {
   },
 
   /**
-   * This function is overriden for multiple values attributes (scale, rotate, translate)
+   * This function is overriden for multiple values attributes (scale, rotate, translate).
    */
   normalize : function(value) {
     return value;
   },
 
   /**
-   * Sums up two normalized values
+   * Sums up two normalized values.
    */
   add : function(a, b) {
     return ""+(parseFloat(a)+parseFloat(b));
   },
 
   /**
-   * Computes and apply the animated value for a given time
-   * It returns false if this animation has been stopped (removed from the running array)
+   * Computes and apply the animated value for a given time.
+   * It returns false if this animation has been stopped (removed from the running array).
    */
   f : function(curTime) {
     var anim = this.anim;
@@ -475,8 +476,8 @@ Animator.prototype = {
   },
 
   /**
-   * Does the interpolation
-   * This function is overriden
+   * Does the interpolation.
+   * This function is overriden.
    */
   interpolate : function(from, to, percent) {
     if (!this.isInterpolable(from, to)) {
@@ -497,8 +498,8 @@ Animator.prototype = {
   },
 
   /**
-   * apply a value to the attribute the animator is linked to
-   * This function is overriden
+   * Apply a value to the attribute the animator is linked to.
+   * This function is overriden.
    */
   step : function(value) {
     if (this.unit)
@@ -562,8 +563,8 @@ Animator.prototype = {
   },
 
   /**
-   * Real stop of the animation (it doesn't repeat)
-   * Freezes or remove the animated value
+   * Really stop of the animation (it doesn't repeat).
+   * Freezes or removes the animated value.
    */
   finish : function(offset) {
     if (this.min && this.min!="indefinite") {
@@ -606,7 +607,7 @@ Animator.prototype = {
   },
 
   /**
-   * Removes this animation from the running array
+   * Removes this animation from the running array.
    */
   stop : function() {
     for(var i=0; i<animations.length ;i++)
@@ -617,14 +618,14 @@ Animator.prototype = {
   },
 
   /**
-   * freezes the attribute value to the ending value
+   * Freezes the attribute value to the ending value.
    */
   freeze : function() {
     this.step(this.freezed);
   },
 
   /**
-   * Adds a listener to this animation beginning or ending
+   * Adds a listener to this animation beginning or ending.
    */
   addEventListener : function(event, func, b) {
     if (event=="begin")
@@ -639,7 +640,7 @@ Animator.prototype = {
   },
 
   /**
-   * Returns the path linked to this animateMotion
+   * Returns the path linked to this animateMotion.
    */
   getPath : function() {
     var mpath = this.anim.getElementsByTagNameNS(svgns,"mpath")[0];
@@ -659,7 +660,7 @@ Animator.prototype = {
   },
 
   /**
-   * initializes this animator as a translation (x,y) :
+   * Initializes this animator as a translation (x,y):
    * <animateTransform type="translate"> or
    * <animateMotion> without a path
    */
@@ -689,7 +690,7 @@ Animator.prototype = {
   },
 
   /**
-   * initializes this animator as a color animation :
+   * Initializes this animator as a color animation:
    * <animateColor> or
    * <animate> on a color attribute
    */
@@ -759,7 +760,7 @@ Animator.prototype = {
 };
 
 /**
- * contructor :
+ * Constructor:
  * - initializes
  * - gets the attributes
  * - corrects and precomputes some values
@@ -1046,8 +1047,8 @@ function Animator(anim, target, index) {
 
 
 /**
- * can be called at any time.
- * It's the main loop
+ * Can be called at any time.
+ * It's the main loop.
  */
 function animate() {
   var curTime = new Date();
@@ -1074,8 +1075,8 @@ function animate() {
 
 
 /**
- * converts a clock-value to milliseconds
- * supported : "s" | "ms" | "min" | "h" | no-units
+ * Converts a clock-value to milliseconds.
+ * Supported: "s" | "ms" | "min" | "h" | no-units
  */
 function toMillis(time) {
   time = time.trim();
@@ -1109,7 +1110,7 @@ function toMillis(time) {
 
 
 /**
- * decompose a matrix into its scale or translate or rotate or skew
+ * Decompose a matrix into its scale, translate, rotate or skew.
  */
 function decompose(matrix, type) {
   if (type=="translate")
@@ -1139,8 +1140,8 @@ function decompose(matrix, type) {
 
 
 /**
- * Convert a rgb(), #XXX, #XXXXXX or named color
- * into an [r,g,b] array
+ * Convert an rgb(), #XXX, #XXXXXX or named color
+ * into an [r,g,b] array.
  */
 function toRGB(color) {
   if (color.substring(0, 3)=="rgb") {
@@ -1426,7 +1427,7 @@ function funk(func, obj, arg) {
 }
 
 /**
- * removes the leading and trailing spaces chars from the string
+ * Removes the leading and trailing spaces chars from the string.
  * NOTE: part of ES5, so use feature detection
  *       http://stackoverflow.com/questions/2308134/trim-in-javascript-not-working-in-ie/#2308157
  * NOTE: the regular expression used in fallback is placed in global namespace for performance
@@ -1440,7 +1441,7 @@ if(typeof String.prototype.trim !== "function") {
 }
 
 /**
- * set an ISO 8601 timestamp to a Date object
+ * Set an ISO 8601 timestamp to a Date object.
  * NOTE: as ES5 doesn't define precisely what "parse" should do, we run a sample to test for feasibility
  *       http://stackoverflow.com/questions/2479714/does-javascript-ecmascript3-support-iso8601-date-parsing/#2481375
  * NOTE: the regular expression used in fallback is placed in global namespace for performance
