@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.47
+@version 0.1.48
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
@@ -64,7 +64,7 @@ function initSMIL() {
   timeZero = new Date();
   // I schedule them (after having instanciating them, for sync-based events)
   // (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
-  for (var i=0; i<animators.length; i++)
+  for (var i=0, j=animators.length; i<j; ++i)
     animators[i].register();
 
   // starts the rendering loop
@@ -72,39 +72,39 @@ function initSMIL() {
 }
 
 function getURLCallback(data) {
-  if(data.success)
+  if (data.success)
     smile(parseXML(data.content, document));
 }
 
 function xhrCallback() {
-  if(this.readyState==4 && this.status==200 && this.responseXML!=null)
+  if (this.readyState==4 && this.status==200 && this.responseXML!=null)
     smile(this.responseXML);
 }
 
 function smile(animating) {
   var request = null;
   var animates = animating.getElementsByTagName("*");
-  for(var j=0; j<animates.length ;j++) {
-    var anim = animates.item(j);
+  for (var i=0, j=animates.length; i<j; ++i) {
+    var anim = animates.item(i);
     var namespaceURI = anim.namespaceURI;
     var nodeName = anim.localName;
     if ((nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") ||
         ((namespaceURI==timesheetns || namespaceURI==smil3ns) && nodeName=="timesheet") ) {
       var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
-      if(src && src.length > 0) {
-        if(!request){
+      if (src && src.length > 0) {
+        if (!request){
           // lazy initialization of XHR
           request = window.XMLHttpRequest ? new XMLHttpRequest() : window.ActiveXObject ? new ActiveXObject("MSXML2.XMLHTTP.3.0") : null;
-          if(request) {
-            if(request.overrideMimeType)
+          if (request) {
+            if (request.overrideMimeType)
               request.overrideMimeType('text/xml');
             request.onreadystatechange = xhrCallback;
           }
         }
-        if(request) {
+        if (request) {
           request.open("GET", src, false);
           request.send(null);
-        } else if(window.getURL && window.parseXML) {
+        } else if (window.getURL && window.parseXML) {
           getURL(src, getURLCallback);
         }
       }
@@ -120,11 +120,11 @@ function smile(animating) {
       if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
         var targets = getTargets(anim);
         var elAnimators = new Array();
-        for(var i=0; i<targets.length ;i++) {
-          var target = targets[i];
-          var animator = new Animator(anim, target, i);
+        for (var k=0; k<targets.length; ++k) {
+          var target = targets[k];
+          var animator = new Animator(anim, target, k);
           animators.push(animator);
-          elAnimators[i] = animator;
+          elAnimators[k] = animator;
         }
         anim.animators = elAnimators;
         var id = anim.getAttribute("id");
@@ -205,7 +205,7 @@ Animator.prototype = {
   schedule : function(timeValueList, func) {
     var me = this; // I do that because if I use "this", the addEventListener understands the event source
     var timeValues = timeValueList.split(";");
-    for(var i=0; i<timeValues.length ;i++) {
+    for (var i=0; i<timeValues.length; ++i) {
       var time = timeValues[i].trim();
       if (time.length>11 && time.substring(0,10)=="wallclock(") {
         var wallclock = new Date();
@@ -213,7 +213,7 @@ Animator.prototype = {
         var now = new Date();
         var diff = wallclock-now;
         func.call(me, diff);
-      } else if(isNaN(parseInt(time))) {
+      } else if (isNaN(parseInt(time))) {
         var offset = 0;
         var io = time.indexOf("+");
         if (io==-1)
@@ -234,9 +234,9 @@ Animator.prototype = {
         }
         var event = time.substring(io+1);
         var call = funk(func, me, offset);
-        for(var j=0; j<elements.length ;j++) {
+        for (var j=0; j<elements.length; ++j) {
           var element = elements[j];
-          if(element==null)
+          if (element==null)
             continue;
           element.addEventListener(event, call, false);
         }
@@ -301,7 +301,7 @@ Animator.prototype = {
 
     if (this.values) {
       this.animVals = this.values.split(";");
-      for(var i=0; i<this.animVals.length ;i++)
+      for (var i=0; i<this.animVals.length; ++i)
         this.animVals[i] = this.animVals[i].trim();
     } else {
       this.animVals = new Array();
@@ -327,7 +327,7 @@ Animator.prototype = {
           var qualified = getUnit(oneVal);
           cp[0] = qualified[0];
           this.unit = qualified[1];
-          for(var i=1; i<this.animVals.length ;i++) {
+          for (var i=1; i<this.animVals.length; ++i) {
             var oneVal = this.animVals[i];
             var qualified = getUnit(oneVal);
             if (qualified[1]==this.unit)
@@ -344,7 +344,7 @@ Animator.prototype = {
 
     this.iterBegin = this.startTime;
     animations.push(this);
-    for(var i=0; i<this.beginListeners.length ;i++)
+    for (var i=0; i<this.beginListeners.length; ++i)
       this.beginListeners[i].call();
     var onbegin = this.anim.getAttribute("onbegin");
     if (onbegin)
@@ -413,8 +413,8 @@ Animator.prototype = {
       var tto = to.trim().split(" ");
       areN = true;
       if (tfrom.length==tto.length)
-        for(var i=0; i<tto.length ;i++)
-          if(!this.isInterpolable(tfrom[i], tto[i]))
+        for (var i=0; i<tto.length; ++i)
+          if (!this.isInterpolable(tfrom[i], tto[i]))
             return false;
     }
     return areN;
@@ -426,8 +426,8 @@ Animator.prototype = {
       return tValues[tValues.length-1];
     if (this.calcMode=="discrete" || !this.isInterpolable(tValues[0],tValues[1])) {
       if (this.keyTimes) {
-        for(var i=1; i<this.keyTimes.length ;i++)
-          if(this.keyTimes[i]>percent)
+        for (var i=1; i<this.keyTimes.length; ++i)
+          if (this.keyTimes[i]>percent)
             return tValues[i-1];
         return tValues[tValues.length-1];
       }
@@ -437,8 +437,8 @@ Animator.prototype = {
     } else {
       var index;
       if (this.keyTimes) {
-        for(var i=1; i<this.keyTimes.length ;i++)
-          if(this.keyTimes[i]>percent) {
+        for (var i=1; i<this.keyTimes.length; ++i)
+          if (this.keyTimes[i]>percent) {
             index = i-1;
             var t1 = this.keyTimes[index];
             percent = (percent-t1)/(this.keyTimes[i]-t1);
@@ -459,9 +459,9 @@ Animator.prototype = {
     var path = this.keySplines[index];
     var tot = path.getTotalLength();
     var step = tot/splinePrecision;
-    for(var i=0; i<=tot ;i+=step) {
+    for (var i=0; i<=tot; i+=step) {
       var pt = path.getPointAtLength(i);
-      if(pt.x>percent) {
+      if (pt.x>percent) {
         var pt1 = path.getPointAtLength(i-step);
         percent -= pt1.x;
         percent /= pt.x-pt1.x;
@@ -486,11 +486,11 @@ Animator.prototype = {
       else
         return to;
     }
-    if(from.trim().indexOf(" ")!=-1) {
+    if (from.trim().indexOf(" ")!=-1) {
       var tfrom = from.split(" ");
       var tto = to.split(" ");
       var ret = new Array();
-      for(var i=0; i<tto.length ;i++)
+      for (var i=0; i<tto.length; ++i)
         ret[i] = parseFloat(tfrom[i])+((tto[i]-tfrom[i])*percent);
       return ret.join(" ");
     }
@@ -528,7 +528,7 @@ Animator.prototype = {
     if (!this.repeatCount && !this.repeatDur)
       return this.finish();
     else {
-      this.iteration++;
+      ++this.iteration;
       var now = new Date();
       if (this.repeatCount && this.repeatCount!="indefinite" && this.iteration>=this.repeatCount)
         return this.finish();
@@ -544,13 +544,13 @@ Animator.prototype = {
             this.animVals[0] = curVal;
             this.animVals[1] = this.add(this.normalize(curVal), this.normalize(this.by));
           } else {
-            for (var i=0; i<this.animVals.length ;i++)
+            for (var i=0; i<this.animVals.length; ++i)
               this.animVals[i] = this.add(this.normalize(curVal), this.normalize(this.animVals[i]));
           }
           this.freezed = this.animVals[this.animVals.length-1];
         }
         this.iterBegin = now;
-        for(var i=0; i<this.repeatIterations.length ;i++) {
+        for (var i=0; i<this.repeatIterations.length; ++i) {
           if (this.repeatIterations[i]==this.iteration)
             this.repeatListeners[i].call();
         }
@@ -596,7 +596,7 @@ Animator.prototype = {
       kept = false;
     }
     if (this.running) {
-      for(var i=0; i<this.endListeners.length ;i++)
+      for (var i=0; i<this.endListeners.length; ++i)
         this.endListeners[i].call();
       var onend = this.anim.getAttribute("onend");
       if (onend)
@@ -610,7 +610,7 @@ Animator.prototype = {
    * Removes this animation from the running array.
    */
   stop : function() {
-    for(var i=0; i<animations.length ;i++)
+    for (var i=0, j=animations.length; i<j; ++i)
       if (animations[i]==this) {
         animations.splice(i, 1);
         break;
@@ -711,7 +711,7 @@ Animator.prototype = {
     }
     this.add = function(a, b) {
       var ret = new Array();
-      for (var i=0; i<a.length ;i++)
+      for (var i=0; i<a.length; ++i)
         ret.push(Math.min(a[i],255)+Math.min(b[i],255));
       return ret.join(",");
     };
@@ -725,7 +725,7 @@ Animator.prototype = {
       var listTo = to.myNormalizedPathSegList;
       var segFrom;
       var segTo;
-      for (var i=0; i<listFrom.numberOfItems && i<listTo.numberOfItems ;i++) {
+      for (var i=0; i<listFrom.numberOfItems && i<listTo.numberOfItems; ++i) {
         segFrom = listFrom.getItem(i);
         segTo = listTo.getItem(i);
         typeFrom = segFrom.pathSegType;
@@ -777,7 +777,7 @@ function Animator(anim, target, index) {
     // attributeType not specified, default stands for "auto"
     // "The implementation must first search through the list of CSS properties for a matching property name"
     // http://www.w3.org/TR/SVG11/animate.html#AttributeTypeAttribute
-    if(propDefaults[this.attributeName] && this.target.style.getPropertyValue(this.attributeName))
+    if (propDefaults[this.attributeName] && this.target.style.getPropertyValue(this.attributeName))
       this.attributeType = "CSS";
     else
       this.attributeType = "XML";
@@ -785,7 +785,7 @@ function Animator(anim, target, index) {
   if (this.attributeType=="XML" && this.attributeName) {
     this.namespace = null;
     var chColon = this.attributeName.indexOf(":");
-    if(chColon != -1) {
+    if (chColon != -1) {
       var prefix = this.attributeName.substring(0,chColon);
       this.attributeName = this.attributeName.substring(chColon+1);
       var node = target;
@@ -807,7 +807,7 @@ function Animator(anim, target, index) {
     this.interpolate = function(from, to, percent) {
       var ret = new Array();
       var xyFrom, xyTo, x, y;
-      for (var i=0; i<from.length && i<to.length ;i++) {
+      for (var i=0; i<from.length && i<to.length; ++i) {
         xyFrom = from[i].split(",");
         xyTo = to[i].split(",");
         x = parseFloat(xyFrom[0])+((parseFloat(xyTo[0])-xyFrom[0])*percent);
@@ -818,7 +818,7 @@ function Animator(anim, target, index) {
     };
     this.normalize = function(value) {
       var ar = value.split(" ");
-      for(var i=ar.length-1 ;i>=0; i--)
+      for (var i=ar.length-1; i>=0; --i)
         if (ar[i]=="")
           ar.splice(i,1);
       return ar;
@@ -837,19 +837,19 @@ function Animator(anim, target, index) {
   this.keyTimes = anim.getAttribute("keyTimes");
   if (this.keyTimes) {
     this.keyTimes = this.keyTimes.split(";");
-    for(var i=0; i<this.keyTimes.length ;i++)
+    for (var i=0; i<this.keyTimes.length; ++i)
       this.keyTimes[i] = parseFloat(this.keyTimes[i]);
     this.keyPoints = anim.getAttribute("keyPoints");
     if (this.keyPoints) {
       this.keyPoints = this.keyPoints.split(";");
-      for(var i=0; i<this.keyPoints.length ;i++)
+      for (var i=0; i<this.keyPoints.length; ++i)
         this.keyPoints[i] = parseFloat(this.keyPoints[i]);
     }
   }
   this.keySplines = anim.getAttribute("keySplines");
   if (this.keySplines) {
     this.keySplines = this.keySplines.split(";");
-    for(var i=0; i<this.keySplines.length ;i++)
+    for (var i=0; i<this.keySplines.length; ++i)
       this.keySplines[i] = createPath("M 0 0 C "+this.keySplines[i]+" 1 1");
   }
   this.dur = anim.getAttribute("dur");
@@ -919,7 +919,7 @@ function Animator(anim, target, index) {
       this.keyTimes = null;
       this.superValueAt = this.valueAt;
       this.valueAt = function(percent) {
-        for(var i=1; i<this.keyPoints.length ;i++) {
+        for (var i=1; i<this.keyPoints.length; ++i) {
           var fakePC = this.keyPoints[this.keyPoints.length-1]
           if (this.pathKeyTimes[i]>percent) {
             var pt = this.keyPoints[i-1];
@@ -975,7 +975,7 @@ function Animator(anim, target, index) {
       };
       this.add = function(a, b) {
         var ret = new Array();
-        for (var i=0; i<a.length ;i++)
+        for (var i=0; i<a.length; ++i)
           ret.push(a[i]*b[i]);
         return ret.join(",");
       };
@@ -998,7 +998,7 @@ function Animator(anim, target, index) {
       };
       this.add = function(a, b) {
         var ret = new Array();
-        for (var i=0; i<a.length ;i++)
+        for (var i=0; i<a.length; ++i)
           ret.push(a[i]+b[i]);
         return ret.join(",");
       };
@@ -1013,13 +1013,13 @@ function Animator(anim, target, index) {
         this.by = this.normalize(this.by).join(",");
       if (this.values) {
         var tvals = this.values.split(";");
-        for (var i=0; i<tvals.length ;i++)
+        for (var i=0; i<tvals.length; ++i)
           tvals[i] = this.normalize(tvals[i]).join(",");
         this.values = tvals.join(";");
       }
       this.interpolate = function(from, to, percent) {
         var ret = new Array();
-        for (var i=0; i<from.length ;i++)
+        for (var i=0; i<from.length; ++i)
           ret.push(from[i]+((to[i]-from[i])*percent));
         return ret.join(",");
       };
@@ -1052,14 +1052,16 @@ function Animator(anim, target, index) {
  */
 function animate() {
   var curTime = new Date();
-  for(var i=0; i<animations.length ;i++) {
+  for (var i=0, j=animations.length; i<j; ++i) {
     try {
-      if (!animations[i].f(curTime))
-        i--;
+      if (!animations[i].f(curTime)) {
+        // animation was removed therefore we need to adjust both the iterator and the auxiliary variable
+        --i; --j;
+        }
     } catch(exc) {
       if (exc.message!=="Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIDOMSVGPathElement.getTotalLength]") {
         // NOTE: in IE, console object is only available when Developer tools are open
-        if(window.console && console.log) {
+        if (window.console && console.log) {
           console.log(exc);
         } else {
           alert(exc);
@@ -1149,7 +1151,7 @@ function toRGB(color) {
     color = color.replace("rgb(", "");
     color = color.replace(")", "");
     var rgb = color.split(",");
-    for (var i=0; i<rgb.length ;i++) {
+    for (var i=0; i<rgb.length; ++i) {
       var len = rgb[i].length-1;
       if (rgb[i].substring(len)=="%")
         rgb[i] = Math.round((rgb[i].substring(0,len))*2.55);
@@ -1186,7 +1188,7 @@ function createPath(d) {
     if (path.normalizedPathSegList)
       path.myNormalizedPathSegList = path.normalizedPathSegList;
   } catch(exc) {}
-  if(!path.myNormalizedPathSegList) {
+  if (!path.myNormalizedPathSegList) {
     // TODO : normalize the path
     path.myNormalizedPathSegList = path.pathSegList;
   }
@@ -1197,7 +1199,7 @@ function createPath(d) {
 var units = ["grad", "deg", "rad", "kHz", "Hz", "em", "em", "px", "pt", "pc", "mm", "cm", "in", "ms", "s", "%"];
 function getUnit(str) {
   if (str && str.substring) {
-    for (var i=0; i<units.length ;i++) {
+    for (var i=0, j=units.length; i<j; ++i) {
       var vlen = str.length-units[i].length;
       if (vlen>0 && str.substring(vlen)==units[i]) {
         var val = str.substring(0, vlen);
@@ -1433,7 +1435,7 @@ function funk(func, obj, arg) {
  * NOTE: the regular expression used in fallback is placed in global namespace for performance
  *       (as it's far better having a "singleton" than bloating every string instance)
  */
-if(typeof String.prototype.trim !== "function") {
+if (typeof String.prototype.trim !== "function") {
   window._trimRegExp = new RegExp("^\\s+|\\s+$", "g");
   String.prototype.trim = function() {
     return this.replace(window._trimRegExp, "");
@@ -1447,7 +1449,7 @@ if(typeof String.prototype.trim !== "function") {
  * NOTE: the regular expression used in fallback is placed in global namespace for performance
  *       (as it's far better having a "singleton" than bloating every date instance)
  */
-if(!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
+if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
   // parse did well, use the native implementation
   Date.prototype.setISO8601 = function (string) {
     this.setTime(Date.parse(string));
