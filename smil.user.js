@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.48
+@version 0.1.51
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
@@ -23,9 +23,9 @@ Copyright 2012 Helder Magalhaes
 /**
  * Milliseconds Per Frame - relation between smoothness and CPU usage:
  * 40 for 25fps ("cine"-look, low CPU usage);
- * ~33 for 30fps (mild resources usage, best for most LCD displays);
+ * 33 for ~30fps (mild resources usage, best for most LCD displays);
  * 25 for 40fps (smoother animation, higher CPU usage);
- * ~17 for 60fps (high CPU usage, not recommended).
+ * 17 for ~60fps (high CPU usage, not recommended).
  * References:
  * http://en.wikipedia.org/wiki/Frame_rate#Frame_rates_in_film_and_television
  * http://knol.google.com/k/refresh-rate-frames-per-second-and-response-times-in-lcd-and-crt-technologies
