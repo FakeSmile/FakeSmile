@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.51
+@version 0.1.52
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
@@ -106,7 +106,7 @@ function smile(animating) {
 			continue;
 		}
 		var impl = document.implementation;
-		if ((namespaceURI==svgns && !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")) ||
+		if ((namespaceURI==svgns && !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1")) ||
 				(namespaceURI==smilanimns && !impl.hasFeature(smilanimns, "1.1")) ||
 				(namespaceURI==smil2ns && !impl.hasFeature(smil2ns, "2.0")) ||
 				(namespaceURI==smil21ns && !impl.hasFeature(smil21ns, "2.1")) ||
