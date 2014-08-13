@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.53
+@version 0.1.54
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
@@ -706,7 +706,7 @@ Animator.prototype = {
 			if (rgb==null)
 				return toRGB(propDefaults[this.attributeName]);
 			return rgb;
-		}
+		};
 		this.add = function(a, b) {
 			var ret = new Array();
 			for (var i=0; i<a.length; ++i)
@@ -1454,9 +1454,9 @@ if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
 	};
 }else{
 	window._setISO8601RegExp = new RegExp(
-		"([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
-		"(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
-		"(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?"
+		"([0-9]{4})(?:-([0-9]{2})(?:-([0-9]{2})" +
+		"(?:T([0-9]{2}):([0-9]{2})(?::([0-9]{2})(?:\.([0-9]+))?)?" +
+		"(?:Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?"
 	);
 	Date.prototype.setISO8601 = function (string) {
 		var d = window._setISO8601RegExp.exec(string);
@@ -1464,15 +1464,15 @@ if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
 		var offset = 0;
 		var date = new Date(d[1], 0, 1);
 
-		if (d[3]) { date.setMonth(d[3] - 1); }
-		if (d[5]) { date.setDate(d[5]); }
-		if (d[7]) { date.setHours(d[7]); }
-		if (d[8]) { date.setMinutes(d[8]); }
-		if (d[10]) { date.setSeconds(d[10]); }
-		if (d[12]) { date.setMilliseconds(Number("0." + d[12]) * 1000); }
-		if (d[14]) {
-			offset = (Number(d[16]) * 60) + Number(d[17]);
-			offset *= ((d[15] == '-') ? 1 : -1);
+		if (d[2]) { date.setMonth(d[2] - 1); }
+		if (d[3]) { date.setDate(d[3]); }
+		if (d[4]) { date.setHours(d[4]); }
+		if (d[5]) { date.setMinutes(d[5]); }
+		if (d[6]) { date.setSeconds(d[6]); }
+		if (d[7]) { date.setMilliseconds(Number("0." + d[7]) * 1000); }
+		if (d[8]) {
+			offset = (Number(d[10]) * 60) + Number(d[11]);
+			offset *= ((d[9] == '-')? 1: -1);
 		}
 		offset -= date.getTimezoneOffset();
 		time = (Number(date) + (offset * 60 * 1000));
