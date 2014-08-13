@@ -1,0 +1,3 @@
+# Always use Linux LF, as it makes scripts slightly smaller
+# (previously, a couple commits had been made in this direction)
+* text eol=lf
