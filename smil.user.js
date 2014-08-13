@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.52
+@version 0.1.53
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
@@ -28,7 +28,6 @@ Copyright 2012 Helder Magalhaes
  * 17 for ~60fps (high CPU usage, not recommended).
  * References:
  * http://en.wikipedia.org/wiki/Frame_rate#Frame_rates_in_film_and_television
- * http://knol.google.com/k/refresh-rate-frames-per-second-and-response-times-in-lcd-and-crt-technologies
  */
 var mpf = 33;
 var splinePrecision = 25;
@@ -57,7 +56,7 @@ function initSMIL() {
 	smile(document);
 
 	timeZero = new Date();
-	// I schedule them (after having instanciating them, for sync-based events)
+	// I schedule them (after having instantiating them, for sync-based events)
 	// (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
 	for (var i=0, j=animators.length; i<j; ++i)
 		animators[i].register();
@@ -189,7 +188,7 @@ Animator.prototype = {
 		if (!begin)
 			begin = "0";
 		this.schedule(begin, this.begin);
-		var end	= this.anim.getAttribute("end");
+		var end = this.anim.getAttribute("end");
 		if (end)
 			this.schedule(end, this.finish);
 	},
@@ -244,7 +243,7 @@ Animator.prototype = {
 
 	/**
 	 * Remembers the initial value of the animated attribute.
-	 * This function is overriden.
+	 * This function is overridden.
 	 */
 	getCurVal : function() {
 		if (this.attributeType=="CSS") {
@@ -347,7 +346,7 @@ Animator.prototype = {
 	},
 
 	/**
-	 * This function is overriden for multiple values attributes (scale, rotate, translate).
+	 * This function is overridden for multiple values attributes (scale, rotate, translate).
 	 */
 	normalize : function(value) {
 		return value;
@@ -361,8 +360,8 @@ Animator.prototype = {
 	},
 
 	/**
-	 * Computes and apply the animated value for a given time.
-	 * It returns false if this animation has been stopped (removed from the running array).
+	 * Computes and applies the animated value for a given time.
+	 * Returns false if this animation has been stopped (removed from the running array).
 	 */
 	f : function(curTime) {
 		var anim = this.anim;
@@ -471,8 +470,8 @@ Animator.prototype = {
 	},
 
 	/**
-	 * Does the interpolation.
-	 * This function is overriden.
+	 * Performs the interpolation.
+	 * This function is overridden.
 	 */
 	interpolate : function(from, to, percent) {
 		if (!this.isInterpolable(from, to)) {
@@ -494,7 +493,7 @@ Animator.prototype = {
 
 	/**
 	 * Apply a value to the attribute the animator is linked to.
-	 * This function is overriden.
+	 * This function is overridden.
 	 */
 	step : function(value) {
 		if (this.unit)
@@ -517,7 +516,7 @@ Animator.prototype = {
 
 	/**
 	 * Normal end of the animation:
-	 * it restarts if repeatCount
+	 * it restarts if repeatCount.
 	 */
 	end : function() {
 		if (!this.repeatCount && !this.repeatDur)
@@ -657,7 +656,7 @@ Animator.prototype = {
 	/**
 	 * Initializes this animator as a translation (x,y):
 	 * <animateTransform type="translate"> or
-	 * <animateMotion> without a path
+	 * <animateMotion> without a path.
 	 */
 	translation : function() {
 		if (this.by && this.by.indexOf(",")==-1)
@@ -687,7 +686,7 @@ Animator.prototype = {
 	/**
 	 * Initializes this animator as a color animation:
 	 * <animateColor> or
-	 * <animate> on a color attribute
+	 * <animate> on a color attribute.
 	 */
 	color : function() {
 		this.isInterpolable = function(from, to) { return true; };
@@ -1052,7 +1051,7 @@ function animate() {
 			if (!animations[i].f(curTime)) {
 				// animation was removed therefore we need to adjust both the iterator and the auxiliary variable
 				--i; --j;
-				}
+			}
 		} catch(exc) {
 			if (exc.message!=="Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIDOMSVGPathElement.getTotalLength]") {
 				// NOTE: in IE, console object is only available when Developer tools are open
@@ -1067,7 +1066,7 @@ function animate() {
 	// it would be cool if the attributes would be computed only, in the previous loop
 	// and then the last values applied after the loop
 	// for that, f(t) must return the value, and we must have a map for object(?).attributeType.attributeName -> value
-	// then f(t) cannot return false when autostoping -> we must find another mechanism
+	// then f(t) cannot return false when autostopping -> we must find another mechanism
 }
 
 
@@ -1451,9 +1450,9 @@ if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
 	};
 }else{
 	window._setISO8601RegExp = new RegExp(
-			"([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
-			"(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
-			"(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?"
+		"([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
+		"(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
+		"(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?"
 	);
 	Date.prototype.setISO8601 = function (string) {
 		var d = window._setISO8601RegExp.exec(string);

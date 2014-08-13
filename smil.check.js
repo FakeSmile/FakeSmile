@@ -30,7 +30,7 @@ var svgns = "http://www.w3.org/2000/svg";
 
 try{
 
-	if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#SVG-animation", "1.1")){
+	if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1")){
 		// even when the implementation doesn't claim to fully support SMIL animation, it may support parts of it
 		// (for example, Gecko has been adding SMIL features since version 2 (Firefox 4), so we should test each feature separately)
 		// Firefox still fails (as of version 15a1) and apparently will keep failing to implement animateColor
@@ -50,7 +50,7 @@ try{
 			objName = currTag.charAt(0).toUpperCase();
 			objName += currTag.substring(1, currTag.length);
 
-			// THINK: which approach one is faster? will it worth to reverse this logic? profile!
+			// THINK: which approach is faster? will it worth to reverse this logic? profile!
 			// (document.createElementNS + string search vs. using document.getElementsByTagNameNS directly)
 			// NOTE: forcing cast to string is needed for compatibility with ASV
 			if(("" + document.createElementNS(svgns, currTag)).indexOf(objName, 11) !== 11){ // NOTE: 11 = "[object SVG".length
@@ -130,7 +130,7 @@ try{
 		var relPath = "";
 	}
 
-	// required SMIL functionallity (at least partially) not supported, so let's inject the FakeSmile script
+	// required SMIL functionality (at least partially) not supported, so let's inject the FakeSmile script
 	// (for safe, we also behave the same when something goes wrong)
 	if(useHref){
 		var scriptEle = document.createElementNS(svgns, "script");
