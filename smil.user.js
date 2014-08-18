@@ -1470,14 +1470,13 @@ if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
 		if (d[5]) { date.setMinutes(d[5]); }
 		if (d[6]) { date.setSeconds(d[6]); }
 		// NOTE: ISO 8601 "decimal fraction of a second" needs to be converted to milliseconds
-		if (d[7]) { date.setMilliseconds(Number("0." + d[7]) * 1000); }
+		if (d[7]) { date.setMilliseconds(parseFloat("0." + d[7]) * 1000); }
 		if (d[8]) {
-			offset = (Number(d[10]) * 60) + Number(d[11]);
+			offset = (parseInt(d[10]) * 60) + parseInt(d[11]);
 			offset *= ((d[9] == '-')? 1: -1);
 		}
 		offset -= date.getTimezoneOffset();
-		time = (Number(date) + (offset * 60 * 1000));
-		this.setTime(Number(time));
+		this.setTime(date.getTime() + (offset * 60 * 1000));
 	};
 }
 
