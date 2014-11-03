@@ -21,15 +21,18 @@ Copyright 2012 Helder Magalhaes
 */
 
 /**
- * Milliseconds Per Frame - relation between smoothness and CPU usage:
- * 40 for 25fps ("cine"-look, low CPU usage);
- * 33 for ~30fps (mild resources usage, best for most LCD displays);
- * 25 for 40fps (smoother animation, higher CPU usage);
- * 17 for ~60fps (high CPU usage, not recommended).
+ * Milliseconds Per Frame - relation between animation smoothness and resources usage:
+ * 83 for ~12fps (standard quality web animation; low CPU usage; slightly jumpy; recommended for discrete or slow-motion animations);
+ * 67 for ~15fps (high quality web animation; reasonable resources usage; recommended for most use-cases);
+ * 40 for  25fps ("cine"-look; recommended for good quality animations on television systems);
+ * 33 for ~30fps (half LCD refresh rate; recommended for high quality animations on desktop systems);
+ * 25 for  40fps (very smooth animation; recommended for high quality animations on dedicated desktop systems);
+ * 17 for ~60fps (LCD refresh rate; high CPU and system overhead; only recommended for very high quality animations running on high-end systems).
  * References:
+ * http://animation.about.com/od/faqs/f/faq_fpsnumber.htm
  * http://en.wikipedia.org/wiki/Frame_rate#Frame_rates_in_film_and_television
  */
-var mpf = 33;
+var mpf = 67;
 var splinePrecision = 25;
 
 var svgns="http://www.w3.org/2000/svg";
