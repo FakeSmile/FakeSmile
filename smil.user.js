@@ -1,7 +1,7 @@
 /*
 @id {7eeff186-cfb4-f7c3-21f2-a15f210dca49}
 @name FakeSmile
-@version 0.1.55
+@version 0.1.56
 @description SMIL implementation in ECMAScript
 @creator David Leunen (leunen.d@gmail.com)
 @homepageURL http://leunen.me/fakesmile/
