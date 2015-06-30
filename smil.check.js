@@ -137,7 +137,7 @@ try{
 		scriptEle.setAttributeNS(xlinkns, "xlink:href", relPath + "smil.user.js");
 	}else{
 		var scriptEle = document.createElement("script");
-		scriptEle.setAttribute(src, relPath + "smil.user.js");
+		scriptEle.setAttribute("src", relPath + "smil.user.js");
 	}
 	scriptEle.setAttribute("type", currScript.getAttribute("type"));
 	document.documentElement.appendChild(scriptEle);
