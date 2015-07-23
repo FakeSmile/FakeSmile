@@ -95,7 +95,14 @@ try{
 		}
 
 	}
+	
+	//check from Modernizr. Added because this was not working properly in IE11
+	var supported = !!document.createElementNS &&
+		/SVGAnimate/.test((({}).toString).call(document.createElementNS('http://www.w3.org/2000/svg', 'animate')));
 
+	if(!supported) {
+		throw "FakeSmile required due to: animate";
+	}
 }catch(exp){
 
 	// debug only - uncomment these lines to know which particular element and/or cause is triggering FakeSmile to load
@@ -137,7 +144,7 @@ try{
 		scriptEle.setAttributeNS(xlinkns, "xlink:href", relPath + "smil.user.js");
 	}else{
 		var scriptEle = document.createElement("script");
-		scriptEle.setAttribute(src, relPath + "smil.user.js");
+		scriptEle.setAttribute("src", relPath + "smil.user.js");
 	}
 	scriptEle.setAttribute("type", currScript.getAttribute("type"));
 	document.documentElement.appendChild(scriptEle);
