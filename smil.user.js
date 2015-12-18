@@ -1197,7 +1197,7 @@ function createPath(d) {
 }
 
 
-var units = ["grad", "deg", "rad", "kHz", "Hz", "em", "em", "px", "pt", "pc", "mm", "cm", "in", "ms", "s", "%"];
+var units = ["grad", "deg", "rad", "kHz", "Hz", "em", "ex", "px", "pt", "pc", "mm", "cm", "in", "ms", "s", "%"];
 function getUnit(str) {
 	if (str && str.substring) {
 		for (var i=0, j=units.length; i<j; ++i) {
