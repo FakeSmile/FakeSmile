@@ -1197,15 +1197,19 @@ function createPath(d) {
 }
 
 
-var units = ["grad", "deg", "rad", "kHz", "Hz", "em", "ex", "px", "pt", "pc", "mm", "cm", "in", "ms", "s", "%"];
+// NOTE: units which aren't valid variable names are enclosed in quotes
+var units = {grad: 1, deg: 1, rad: 1, kHz: 1, Hz: 1, em: 1, ex: 1, px: 1, pt: 1, pc: 1, mm: 1, cm: 1, in: 1, ms: 1, s: 1, "%": 1};
 function getUnit(str) {
 	if (str && str.substring && str.length > 1) {
-		for (var i=0, j=units.length; i<j; ++i) {
-			var vlen = str.length-units[i].length;
-			if (vlen>0 && str.substring(vlen)==units[i]) {
-				var val = str.substring(0, vlen);
-				if (!isNaN(val))
-					return [val,units[i]];
+		for (var i=1; i<4; ++i) { // loop through units string length
+			var vlen = str.length-i;
+			if (vlen>0) {
+				var unit = str.substring(vlen);
+				if (units[unit]) {
+					var val = str.substring(0, vlen);
+					if (!isNaN(val))
+						return [val,unit];
+				}
 			}
 		}
 	}
