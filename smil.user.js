@@ -86,7 +86,7 @@ function smile(animating) {
 		var namespaceURI = anim.namespaceURI;
 		var nodeName = anim.localName;
 		if ((nodeName.length==4 && nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") ||
-				((namespaceURI==timesheetns || namespaceURI==smil3ns) && nodeName=="timesheet") ) {
+				(nodeName=="timesheet" && (namespaceURI==timesheetns || namespaceURI==smil3ns)) ) {
 			var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
 			if (src && src.length > 0) {
 				if (!request){
