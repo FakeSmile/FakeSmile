@@ -224,7 +224,7 @@ Animator.prototype = {
 					time = time.substring(0, io).trim();
 				}
 				io = time.indexOf(".");
-				var elements = new Array();
+				var elements;
 				if (io==-1) {
 					elements = [this.target];
 				} else {
