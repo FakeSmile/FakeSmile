@@ -1098,15 +1098,15 @@ function toMillis(time) {
 		time = parseInt(time.substring(0, time.length-2));
 	} else if (len>1 && time.substring(len-1)=="s") {
 		time = time.substring(0, time.length-1);
-		time = time*1000;
+		time *= 1000;
 	} else if (len>3 && time.substring(len-3)=="min") {
 		time = time.substring(0, time.length-3);
-		time = time*60000;
+		time *= 60000;
 	} else if (len>1 && time.substring(len-1)=="h") {
 		time = time.substring(0, time.length-1);
-		time = time*3600000;
+		time *= 3600000;
 	} else {
-		time = time*1000;
+		time *= 1000;
 	}
 	return time;
 }
