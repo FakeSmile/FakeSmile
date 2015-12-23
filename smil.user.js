@@ -1137,7 +1137,9 @@ function decompose(matrix, type) {
 		return scaleX+","+scaleY;
 	}
 	var AdotB = a*b+c*d;
-	var shear = Math.PI/2-Math.acos(AdotB==0?0:(AdotB/(ModB*ModA)));
+	if (AdotB==0)
+		return 0;
+	var shear = Math.PI/2-Math.acos(AdotB/(ModB*ModA));
 	return (shear*180)/Math.PI;
 }
 
