@@ -1088,14 +1088,14 @@ function toMillis(time) {
 
 	if (io!=-1) {
 		var clockVal = time.split(":");
-		var len = clockVal.length;
+		len = clockVal.length;
 		time = 0;
-		if (clockVal.length==3)
+		if (len==3)
 			time += parseInt(clockVal[0])*3600000;
 		time += parseInt(clockVal[len-2])*60000;
 		time += parseFloat(clockVal[len-1])*1000;
 	} else if (len>2 && time.substring(len-2)=="ms") {
-		time = time.substring(0, time.length-2);
+		time = parseInt(time.substring(0, time.length-2));
 	} else if (len>1 && time.substring(len-1)=="s") {
 		time = time.substring(0, time.length-1);
 		time = time*1000;
@@ -1108,7 +1108,7 @@ function toMillis(time) {
 	} else {
 		time = time*1000;
 	}
-	return parseFloat(time);
+	return time;
 }
 
 
