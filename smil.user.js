@@ -986,12 +986,11 @@ function Animator(anim, target, index) {
 			this.normalize = function(value) {
 				value = value.replace(/,/g," ");
 				var coords = value.split(" ");
+				coords[0] = parseFloat(coords[0]);
 				if (coords.length<3) {
-					coords[0] = parseFloat(coords[0]);
 					coords[1] = 0;
 					coords[2] = 0;
 				} else {
-					coords[0] = parseFloat(coords[0]);
 					coords[1] = parseFloat(coords[1]);
 					coords[2] = parseFloat(coords[2]);
 				}
