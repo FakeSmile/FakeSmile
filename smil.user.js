@@ -670,11 +670,12 @@ Animator.prototype = {
 			this.by = this.by+",0";
 		this.normalize = function(value) {
 			var coords = value.replace(/,/g," ").replace(/ +/," ").split(/ /);
-			if (coords.length==1)
-				coords[1] = "0";
-				//coords[1] = this.initVal.split(",")[1];
 			coords[0] = parseFloat(coords[0]);
-			coords[1] = parseFloat(coords[1]);
+			if (coords.length==1)
+				coords[1] = 0;
+				//coords[1] = this.initVal.split(",")[1];
+			else
+				coords[1] = parseFloat(coords[1]);
 			return coords;
 		};
 		this.add = function(a, b) {
@@ -968,10 +969,11 @@ function Animator(anim, target, index) {
 			this.normalize = function(value) {
 				value = value.replace(/,/g," ");
 				var coords = value.split(" ");
+				coords[0] = parseFloat(coords[0]);
 				if (coords.length==1)
 					coords[1] = coords[0];
-				coords[0] = parseFloat(coords[0]);
-				coords[1] = parseFloat(coords[1]);
+				else
+					coords[1] = parseFloat(coords[1]);
 				return coords;
 			};
 			this.add = function(a, b) {
