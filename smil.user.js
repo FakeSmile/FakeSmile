@@ -376,7 +376,6 @@ Animator.prototype = {
 			return true;
 
 		var beginTime = this.iterBegin;
-
 		var diff = curTime-beginTime;
 		var percent = diff/dur;
 		if (percent>=1)
@@ -397,12 +396,10 @@ Animator.prototype = {
 		}
 
 		var anim = this.anim;
-
 		if (anim.localName=="set")
 			return true;
 
 		var curVal = this.valueAt(percent);
-
 		this.step(curVal);
 		return true;
 	},
