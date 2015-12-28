@@ -371,8 +371,6 @@ Animator.prototype = {
 	 * Returns false if this animation has been stopped (removed from the running array).
 	 */
 	f : function(curTime) {
-		var anim = this.anim;
-
 		var dur = this.computedDur;
 		if (isNaN(dur))
 			return true;
@@ -397,6 +395,8 @@ Animator.prototype = {
 			}
 			return this.end();
 		}
+
+		var anim = this.anim;
 
 		if (anim.localName=="set")
 			return true;
