@@ -83,8 +83,22 @@ function smile(animating) {
 	var animates = animating.getElementsByTagName("*");
 	for (var i=0, j=animates.length; i<j; ++i) {
 		var anim = animates.item(i);
-		var namespaceURI = anim.namespaceURI;
 		var nodeName = anim.localName;
+
+		switch (nodeName.length) {
+			case 4: // "link"
+			case 9: // "timesheet"
+			case 3: // "set"
+			case 7: // "animate"
+			case 12: // "animateColor"
+			case 13: // "animateMotion"
+			case 16: // "animateTransform"
+				break;
+			default:
+				continue;
+		}
+
+		var namespaceURI = anim.namespaceURI;
 		if ((nodeName.length==4 && nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") ||
 				(nodeName=="timesheet" && (namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0")) || (namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0"))) ) {
 			var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
