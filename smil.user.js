@@ -80,48 +80,78 @@ function xhrCallback() {
 
 function smile(animating) {
 	var request = null;
+	var src = null;
+	var impl = document.implementation;
 	var animates = animating.getElementsByTagName("*");
 	for (var i=0, j=animates.length; i<j; ++i) {
 		var anim = animates.item(i);
 		var nodeName = anim.localName;
+		var namespaceURI = anim.namespaceURI;
 
 		switch (nodeName.length) {
 			case 4: // "link"
+				if (nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
+					src = anim.getAttribute("src");
+					if (src)
+						break;
+				}
+				continue;
 			case 9: // "timesheet"
+				if (nodeName=="timesheet" && (namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0")) || (namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0"))) {
+					src = anim.getAttribute("href");
+					if (src)
+						break;
+				}
+				continue;
 			case 3: // "set"
+				if (nodeName=="set") {
+					break;
+				}
+				continue;
 			case 7: // "animate"
+				if (nodeName=="animate") {
+					break;
+				}
+				continue;
 			case 12: // "animateColor"
+				if (nodeName=="animateColor") {
+					break;
+				}
+				continue;
 			case 13: // "animateMotion"
+				if (nodeName=="animateMotion") {
+					break;
+				}
+				continue;
 			case 16: // "animateTransform"
-				break;
+				if (nodeName=="animateTransform") {
+					break;
+				}
+				continue;
 			default:
 				continue;
 		}
 
-		var namespaceURI = anim.namespaceURI;
-		if ((nodeName.length==4 && nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") ||
-				(nodeName=="timesheet" && (namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0")) || (namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0"))) ) {
-			var src = anim.getAttribute(nodeName=="timesheet"?"src":"href");
-			if (src && src.length > 0) {
-				if (!request){
-					// lazy initialization of XHR
-					request = window.XMLHttpRequest ? new XMLHttpRequest() : window.ActiveXObject ? new ActiveXObject("MSXML2.XMLHTTP.3.0") : null;
-					if (request) {
-						if (request.overrideMimeType)
-							request.overrideMimeType('text/xml');
-						request.onreadystatechange = xhrCallback;
-					}
-				}
+		if (src && src.length > 0) {
+			if (!request){
+				// lazy initialization of XHR
+				request = window.XMLHttpRequest ? new XMLHttpRequest() : window.ActiveXObject ? new ActiveXObject("MSXML2.XMLHTTP.3.0") : null;
 				if (request) {
-					request.open("GET", src, false);
-					request.send(null);
-				} else if (window.getURL && window.parseXML) {
-					getURL(src, getURLCallback);
+					if (request.overrideMimeType)
+						request.overrideMimeType('text/xml');
+					request.onreadystatechange = xhrCallback;
 				}
 			}
+			if (request) {
+				request.open("GET", src, false);
+				request.send(null);
+			} else if (window.getURL && window.parseXML) {
+				getURL(src, getURLCallback);
+			}
+			src = null;
 			continue;
 		}
-		var impl = document.implementation;
+
 		// hasFeature("org.w3c.svg.animation", "1.0")
 		// NOTE: feature strings are broken in ASV - apparently only declarative switch declarations work
 		// (we have already filter this implementation, though, during the loading phase)
@@ -132,20 +162,18 @@ function smile(animating) {
 				(namespaceURI==smil21ns && !impl.hasFeature(smil21ns, "2.1")) ||
 				(namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0")) ||
 				(namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0"))) {
-			if (nodeName=="set" || nodeName=="animate" || nodeName=="animateColor" || nodeName=="animateMotion" || nodeName=="animateTransform") {
-				var targets = getTargets(anim);
-				var elAnimators = new Array();
-				for (var k=0; k<targets.length; ++k) {
-					var target = targets[k];
-					var animator = new Animator(anim, target, k);
-					animators.push(animator);
-					elAnimators[k] = animator;
-				}
-				anim.animators = elAnimators;
-				var id = anim.getAttribute("id");
-				if (id)
-					id2anim[id] = anim;
+			var targets = getTargets(anim);
+			var elAnimators = new Array();
+			for (var k=0; k<targets.length; ++k) {
+				var target = targets[k];
+				var animator = new Animator(anim, target, k);
+				animators.push(animator);
+				elAnimators[k] = animator;
 			}
+			anim.animators = elAnimators;
+			var id = anim.getAttribute("id");
+			if (id)
+				id2anim[id] = anim;
 		}
 	}
 }
