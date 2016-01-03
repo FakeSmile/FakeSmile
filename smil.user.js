@@ -90,7 +90,7 @@ function smile(animating) {
 
 		switch (nodeName.length) {
 			case 4: // "link"
-				if (nodeName.toLowerCase()=="link" && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
+				if ((nodeName=="link" || nodeName=="LINK") && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
 					src = anim.getAttribute("src");
 					if (src)
 						break;
