@@ -81,7 +81,22 @@ function xhrCallback() {
 function smile(animating) {
 	var request = null;
 	var src = null;
+
 	var impl = document.implementation;
+	// hasFeature("org.w3c.svg.animation", "1.0")
+	// NOTE: feature strings are broken in ASV - apparently only declarative switch declarations work
+	// (we have already filter this implementation, though, during the loading phase)
+	// http://tech.groups.yahoo.com/group/svg-developers/message/61236
+	// namespace-to-process cache
+	// (map is initialized this way to avoid variables names being picked up as key instead of their value)
+	var ns2proc = {};
+	ns2proc[svgns] = !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1");
+	ns2proc[smilanimns] = !impl.hasFeature(smilanimns, "1.1");
+	ns2proc[smil2ns] = !impl.hasFeature(smil2ns, "2.0");
+	ns2proc[smil21ns] = !impl.hasFeature(smil21ns, "2.1");
+	ns2proc[smil3ns] = !impl.hasFeature(smil3ns, "3.0");
+	ns2proc[timesheetns] = !impl.hasFeature(timesheetns, "1.0");
+
 	var animates = animating.getElementsByTagName("*");
 	for (var i=0, j=animates.length; i<j; ++i) {
 		var anim = animates.item(i);
@@ -97,7 +112,7 @@ function smile(animating) {
 				}
 				continue;
 			case 9: // "timesheet"
-				if (nodeName=="timesheet" && (namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0")) || (namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0"))) {
+				if (nodeName=="timesheet" && ns2proc[anim.namespaceURI]) {
 					src = anim.getAttribute("href");
 					if (src)
 						break;
@@ -152,16 +167,7 @@ function smile(animating) {
 			continue;
 		}
 
-		// hasFeature("org.w3c.svg.animation", "1.0")
-		// NOTE: feature strings are broken in ASV - apparently only declarative switch declarations work
-		// (we have already filter this implementation, though, during the loading phase)
-		// http://tech.groups.yahoo.com/group/svg-developers/message/61236
-		if ((namespaceURI==svgns && !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1")) ||
-				(namespaceURI==smilanimns && !impl.hasFeature(smilanimns, "1.1")) ||
-				(namespaceURI==smil2ns && !impl.hasFeature(smil2ns, "2.0")) ||
-				(namespaceURI==smil21ns && !impl.hasFeature(smil21ns, "2.1")) ||
-				(namespaceURI==smil3ns && !impl.hasFeature(smil3ns, "3.0")) ||
-				(namespaceURI==timesheetns && !impl.hasFeature(timesheetns, "1.0"))) {
+		if (ns2proc[anim.namespaceURI]) {
 			var targets = getTargets(anim);
 			var elAnimators = new Array();
 			for (var k=0; k<targets.length; ++k) {
