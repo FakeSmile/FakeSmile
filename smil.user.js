@@ -240,9 +240,10 @@ Animator.prototype = {
 	 */
 	register : function() {
 		var begin = this.anim.getAttribute("begin");
-		if (!begin)
-			begin = "0";
-		this.schedule(begin, this.begin);
+		if (begin)
+			this.schedule(begin, this.begin);
+		else
+			this.begin(0);
 		var end = this.anim.getAttribute("end");
 		if (end)
 			this.schedule(end, this.finish);
