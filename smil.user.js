@@ -429,7 +429,7 @@ Animator.prototype = {
 		if (percent>=1)
 			return this.end(curTime);
 
-		var iteration = parseFloat(this.iteration);
+		var iteration = this.iteration;
 		if (this.repeatCount && this.repeatCount!="indefinite" && (iteration+percent)>=this.repeatCount) {
 			if (this.fill=="freeze")
 				this.freezed = this.valueAt(this.repeatCount-iteration);
@@ -1084,9 +1084,10 @@ function Animator(anim, target, index) {
 	this.anim.endElementAt = function(offset) { me.finish(offset*1000); return true; };
 
 	this.anim.getStartTime = function() { return parseFloat(me.iterBegin-timeZero)/1000; };
+	this.anim.getStartTime = function() { return (me.iterBegin-timeZero)/1000; };
 	this.anim.getCurrentTime = function() {
 		var now = new Date();
-		return parseFloat(now-me.iterBegin)/1000;
+		return (now-me.iterBegin)/1000;
 	};
 }
 
