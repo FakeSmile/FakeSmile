@@ -427,20 +427,20 @@ Animator.prototype = {
 		var diff = curTime-beginTime;
 		var percent = diff/dur;
 		if (percent>=1)
-			return this.end();
+			return this.end(curTime);
 
 		var iteration = parseFloat(this.iteration);
 		if (this.repeatCount && this.repeatCount!="indefinite" && (iteration+percent)>=this.repeatCount) {
 			if (this.fill=="freeze")
 				this.freezed = this.valueAt(this.repeatCount-iteration);
-			return this.end();
+			return this.end(curTime);
 		}
 		if (this.repeatDur && this.repeatDur!="indefinite" && (curTime-this.startTime)>=toMillis(this.repeatDur)) {
 			if (this.fill=="freeze") {
 				var div = toMillis(this.repeatDur)/dur;
 				this.freezed = this.valueAt(div-Math.floor(div));
 			}
-			return this.end();
+			return this.end(curTime);
 		}
 
 		var anim = this.anim;
@@ -570,12 +570,11 @@ Animator.prototype = {
 	 * Normal end of the animation:
 	 * it restarts if repeatCount.
 	 */
-	end : function() {
+	end : function(now) {
 		if (!this.repeatCount && !this.repeatDur)
 			return this.finish();
 		else {
 			++this.iteration;
-			var now = new Date();
 			if (this.repeatCount && this.repeatCount!="indefinite" && this.iteration>=this.repeatCount)
 				return this.finish();
 			else if (this.repeatDur && this.repeatDur!="indefinite" && (now-this.startTime)>=toMillis(this.repeatDur))
