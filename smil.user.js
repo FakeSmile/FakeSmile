@@ -984,7 +984,6 @@ function Animator(anim, target, index) {
 			};
 		}
 		this.step = function(value) {
-			var attributeName = this.attributeName;
 			value = "translate("+value+")";
 			this.target.setAttribute("transform", value);
 		};
