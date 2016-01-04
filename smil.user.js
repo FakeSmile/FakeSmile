@@ -367,8 +367,8 @@ Animator.prototype = {
 			this.freezed = this.animVals[this.animVals.length-1];
 
 			if (this.animVals[0]) {
-				if ( (this.animVals[0].substring(0,1)=="#" || colors[this.animVals[0]] || (this.animVals[0].length>5 && this.animVals[0].trim().substring(0,4)=="rgb(")) &&
-					 (this.freezed.substring(0,1)=="#" || colors[this.freezed] || (this.freezed.length>5 && this.freezed.trim().substring(0,4)=="rgb(")) )
+				if ( (this.animVals[0][0]=="#" || colors[this.animVals[0]] || (this.animVals[0].length>5 && this.animVals[0].trim().substring(0,4)=="rgb(")) &&
+					 (this.freezed[0]=="#" || colors[this.freezed] || (this.freezed.length>5 && this.freezed.trim().substring(0,4)=="rgb(")) )
 					this.color();
 				else {
 					var cp = new Array();
@@ -877,7 +877,7 @@ function Animator(anim, target, index) {
 	this.values = anim.getAttribute("values");
 	if (this.values) {
 		this.values = this.values.trim();
-		if (this.values.substring(this.values.length-1)==";")
+		if (this.values[this.values.length-1]==";")
 			this.values = this.values.substring(0, this.values.length-1);
 	}
 	this.calcMode = anim.getAttribute("calcMode");
@@ -1141,13 +1141,13 @@ function toMillis(time) {
 		time += parseFloat(clockVal[len-1])*1000;
 	} else if (len>2 && time.substring(len-2)=="ms") {
 		time = parseInt(time.substring(0, time.length-2));
-	} else if (len>1 && time.substring(len-1)=="s") {
+	} else if (len>1 && time[len-1]=="s") {
 		time = time.substring(0, time.length-1);
 		time *= 1000;
 	} else if (len>3 && time.substring(len-3)=="min") {
 		time = time.substring(0, time.length-3);
 		time *= 60000;
-	} else if (len>1 && time.substring(len-1)=="h") {
+	} else if (len>1 && time[len-1]=="h") {
 		time = time.substring(0, time.length-1);
 		time *= 3600000;
 	} else {
@@ -1201,7 +1201,7 @@ function toRGB(color) {
 		var rgb = color.split(",");
 		for (var i=0; i<rgb.length; ++i) {
 			var len = rgb[i].length-1;
-			if (rgb[i].substring(len)=="%")
+			if (rgb[i][len]=="%")
 				rgb[i] = Math.round((rgb[i].substring(0,len))*2.55);
 			else
 				rgb[i] = parseInt(rgb[i]);
