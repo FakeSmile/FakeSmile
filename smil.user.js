@@ -614,7 +614,7 @@ Animator.prototype = {
 	finish : function(offset) {
 		if (this.min && this.min!="indefinite") {
 			var now = new Date();
-			if ((now-this.startTime)>=toMillis(this.min))
+			if ((now-this.startTime)>=this.computedMin)
 				return true;
 		}
 		if (offset && offset>0) {
