@@ -88,6 +88,7 @@ function smile(animating) {
 	// (we have already filter this implementation, though, during the loading phase)
 	// http://tech.groups.yahoo.com/group/svg-developers/message/61236
 	// namespace-to-process cache
+	// ("process" in the sense of "feature check states that support by script is needed")
 	// (map is initialized this way to avoid variables names being picked up as key instead of their value)
 	var ns2proc = {};
 	ns2proc[svgns] = !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1");
@@ -104,41 +105,41 @@ function smile(animating) {
 		var namespaceURI = anim.namespaceURI;
 
 		switch (nodeName.length) {
-			case 4: // "link"
+			case 4: // "link".length
 				if ((nodeName=="link" || nodeName=="LINK") && anim.getAttribute("rel")=="timesheet" && anim.getAttribute("type")=="application/smil+xml") {
 					src = anim.getAttribute("src");
 					if (src)
 						break;
 				}
 				continue;
-			case 9: // "timesheet"
+			case 9: // "timesheet".length
 				if (nodeName=="timesheet" && ns2proc[anim.namespaceURI]) {
 					src = anim.getAttribute("href");
 					if (src)
 						break;
 				}
 				continue;
-			case 3: // "set"
+			case 3: // "set".length
 				if (nodeName=="set") {
 					break;
 				}
 				continue;
-			case 7: // "animate"
+			case 7: // "animate".length
 				if (nodeName=="animate") {
 					break;
 				}
 				continue;
-			case 12: // "animateColor"
+			case 12: // "animateColor".length
 				if (nodeName=="animateColor") {
 					break;
 				}
 				continue;
-			case 13: // "animateMotion"
+			case 13: // "animateMotion".length
 				if (nodeName=="animateMotion") {
 					break;
 				}
 				continue;
-			case 16: // "animateTransform"
+			case 16: // "animateTransform".length
 				if (nodeName=="animateTransform") {
 					break;
 				}
@@ -147,6 +148,7 @@ function smile(animating) {
 				continue;
 		}
 
+		// deal with external timesheets
 		if (src && src.length > 0) {
 			if (!request){
 				// lazy initialization of XHR
@@ -163,10 +165,12 @@ function smile(animating) {
 			} else if (window.getURL && window.parseXML) {
 				getURL(src, getURLCallback);
 			}
+			// reset variable
 			src = null;
 			continue;
 		}
 
+		// deal with animations
 		if (ns2proc[anim.namespaceURI]) {
 			var targets = getTargets(anim);
 			var elAnimators = new Array();
