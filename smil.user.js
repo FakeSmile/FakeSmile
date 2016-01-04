@@ -1109,8 +1109,9 @@ function animate() {
 				// NOTE: in IE, console object is only available when Developer tools are open
 				if (window.console && console.log) {
 					console.log(exc);
-				} else {
-					alert(exc);
+				// uncomment to force error display
+				//} else {
+				//	alert(exc);
 				}
 			}
 		}
