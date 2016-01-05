@@ -774,8 +774,7 @@ Animator.prototype = {
 			var path = "";
 			var listFrom = from.myNormalizedPathSegList;
 			var listTo = to.myNormalizedPathSegList;
-			var segFrom;
-			var segTo;
+			var segFrom, segTo, typeFrom, typeTo;
 			for (var i=0, j=Math.min(listFrom.numberOfItems, listTo.numberOfItems); i<j; ++i) {
 				segFrom = listFrom.getItem(i);
 				segTo = listTo.getItem(i);
