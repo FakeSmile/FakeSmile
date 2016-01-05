@@ -776,7 +776,7 @@ Animator.prototype = {
 			var listTo = to.myNormalizedPathSegList;
 			var segFrom;
 			var segTo;
-			for (var i=0; i<listFrom.numberOfItems && i<listTo.numberOfItems; ++i) {
+			for (var i=0, j=Math.min(listFrom.numberOfItems, listTo.numberOfItems); i<j; ++i) {
 				segFrom = listFrom.getItem(i);
 				segTo = listTo.getItem(i);
 				typeFrom = segFrom.pathSegType;
@@ -858,7 +858,7 @@ function Animator(anim, target, index) {
 		this.interpolate = function(from, to, percent) {
 			var ret = new Array();
 			var xyFrom, xyTo, x, y;
-			for (var i=0; i<from.length && i<to.length; ++i) {
+			for (var i=0, j=Math.min(from.length, to.length); i<j; ++i) {
 				xyFrom = from[i].split(",");
 				xyTo = to[i].split(",");
 				x = parseFloat(xyFrom[0])+((parseFloat(xyTo[0])-xyFrom[0])*percent);
