@@ -791,7 +791,9 @@ Animator.prototype = {
 						path += " M ";
 					else if (typeFrom==4 || typeTo==4)
 						path += " L ";
-					else {
+					// NOTE: need to be more strict here, as interpolating a 'C' command with an 'M' or an 'L' isn't yet supported
+					// (additional trickery is required for dealing with different DOM interfaces and interpolating them)
+					else if (typeFrom==6 && typeTo==6) {
 						var x1 = segFrom.x1+((segTo.x1-segFrom.x1)*percent);
 						var y1 = segFrom.y1+((segTo.y1-segFrom.y1)*percent);
 						var x2 = segFrom.x2+((segTo.x2-segFrom.x2)*percent);
