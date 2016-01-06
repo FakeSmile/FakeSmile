@@ -495,6 +495,8 @@ Animator.prototype = {
 						percent = (percent-t1)/(this.keyTimes[i]-t1);
 						break;
 					}
+				if (i>=this.keyTimes.length)
+					index = i-2;
 			} else {
 				var parts = tValues.length-1;
 				index = Math.floor(percent*parts);
