@@ -782,18 +782,19 @@ Animator.prototype = {
 				segTo = listTo.getItem(i);
 				typeFrom = segFrom.pathSegType;
 				typeTo = segTo.pathSegType;
-				if (typeFrom==1 || typeTo==1)
+				// NOTE: in 'normalizedPathSegList', only 'M', 'L', 'C' and 'z' path data commands are expected
+				if (typeFrom==1 || typeTo==1) // PATHSEG_CLOSEPATH
 					path += " z ";
 				else {
 					var x = segFrom.x+((segTo.x-segFrom.x)*percent);
 					var y = segFrom.y+((segTo.y-segFrom.y)*percent);
-					if (typeFrom==2 || typeTo==2)
+					if (typeFrom==2 || typeTo==2) // PATHSEG_MOVETO_ABS
 						path += " M ";
-					else if (typeFrom==4 || typeTo==4)
+					else if (typeFrom==4 || typeTo==4) // PATHSEG_LINETO_ABS
 						path += " L ";
 					// NOTE: need to be more strict here, as interpolating a 'C' command with an 'M' or an 'L' isn't yet supported
 					// (additional trickery is required for dealing with different DOM interfaces and interpolating them)
-					else if (typeFrom==6 && typeTo==6) {
+					else if (typeFrom==6 && typeTo==6) { // PATHSEG_CURVETO_CUBIC_ABS
 						var x1 = segFrom.x1+((segTo.x1-segFrom.x1)*percent);
 						var y1 = segFrom.y1+((segTo.y1-segFrom.y1)*percent);
 						var x2 = segFrom.x2+((segTo.x2-segFrom.x2)*percent);
