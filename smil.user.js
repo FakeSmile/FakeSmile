@@ -799,7 +799,10 @@ Animator.prototype = {
 						var x2 = segFrom.x2+((segTo.x2-segFrom.x2)*percent);
 						var y2 = segFrom.y2+((segTo.y2-segFrom.y2)*percent);
 						path += " C "+x1+","+y1+" "+x2+","+y2+" ";
-					}
+					} else
+						// "unexpected" type found, which means that 'pathSegList' is being used
+						// (incomplete support for segment interpolation therefore switch to a discrete approach)
+						return (percent<.5? from: to).getAttribute("d");
 					path += x+","+y;
 				}
 			}
