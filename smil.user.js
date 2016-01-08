@@ -555,16 +555,18 @@ Animator.prototype = {
 	 * This function is overridden.
 	 */
 	step : function(value) {
-		if (this.unit)
-			value += this.unit;
 		var attributeName = this.attributeName;
 		var attributeType = this.attributeType;
 		if (attributeType=="CSS") {
 			// workaround a Gecko and WebKit bug
 			if (attributeName=="font-size" && !isNaN(value))
 				value += "px";
+			else if (this.unit)
+				value += this.unit;
 			this.target.style.setProperty(attributeName, value, "");
 		} else {
+			if (this.unit)
+				value += this.unit;
 			//var animAtt = this.target[attributeName];
 			//if (animAtt && animAtt.animVal)
 			//	animAtt.animVal.value = value;
