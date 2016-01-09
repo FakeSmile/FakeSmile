@@ -64,7 +64,10 @@ function initSMIL() {
 	for (var i=0, j=animators.length; i<j; ++i)
 		animators[i].register();
 
-	// starts the rendering loop
+	// render the very start of the timeline
+	animate();
+
+	// schedules the rendering loop
 	window.setInterval(animate, mpf);
 }
 
