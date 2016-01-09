@@ -328,7 +328,7 @@ Animator.prototype = {
 			return;
 		if (this.running)
 			this.finish();
-		if (offset!=null && offset>=0) {
+		if (offset && offset>0) {
 			var me = this;
 			var myself = this.begin;
 			var call = function() {myself.call(me)};
