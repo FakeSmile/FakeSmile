@@ -28,9 +28,11 @@ Copyright 2012 Helder Magalhaes
  * 33 for ~30fps (half LCD refresh rate; recommended for high quality animations on desktop systems);
  * 25 for  40fps (very smooth animation; recommended for high quality animations on dedicated desktop systems);
  * 17 for ~60fps (LCD refresh rate; high CPU and system overhead; only recommended for very high quality animations running on high-end systems).
+ * Lower values are *not* recommended - may cause an overall negative impact on the Operating System and a relevant energy consumption increase!
  * References:
  * http://animation.about.com/od/faqs/f/faq_fpsnumber.htm
  * http://en.wikipedia.org/wiki/Frame_rate#Frame_rates_in_film_and_television
+ * https://www.nczonline.net/blog/2011/12/14/timer-resolution-in-browsers/
  */
 var mpf = 67;
 var splinePrecision = 25;
