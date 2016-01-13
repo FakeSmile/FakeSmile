@@ -1,6 +1,6 @@
 /**
  * Copyright 2012 Helder Magalhaes
- * MIT and GPL Licenses
+ * MIT and GPLv3 Licenses
  *
  * Determine if SMIL is supported in order to inject the FakeSmile script only when necessary.
  * Measured average execution time (in IE9 and Fx12) was only a few milliseconds.

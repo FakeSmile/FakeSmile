@@ -13,7 +13,7 @@
 // @namespace svg.smil
 // ==/UserScript==
 
-/* MIT and GPL Licenses */
+/* MIT and GPLv3 Licenses */
 
 /*
 Copyright 2008 David Leunen
