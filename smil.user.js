@@ -48,7 +48,7 @@ var xlinkns="http://www.w3.org/1999/xlink";
 var animators = new Array(); // all animators
 var id2anim = new Object(); // id -> animation elements (workaround a Gecko bug)
 var animations = new Array(); // running animators
-var timeZero;
+var timeZero; // timeline start-up timestamp
 var prevTime; // previous render timestamp
 
 /**
@@ -91,15 +91,14 @@ function smile(animating) {
 	var src = null;
 
 	var impl = document.implementation;
-	// hasFeature("org.w3c.svg.animation", "1.0")
-	// NOTE: feature strings are broken in ASV - apparently only declarative switch declarations work
-	// (we have already filter this implementation, though, during the loading phase)
-	// http://tech.groups.yahoo.com/group/svg-developers/message/61236
 	// namespace-to-process cache
 	// ("process" in the sense of "feature check states that support by script is needed")
 	// (map is initialized this way to avoid variables names being picked up as key instead of their value)
 	var ns2proc = {};
-	ns2proc[svgns] = !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1");
+	// NOTE: feature strings are broken in ASV - apparently only declarative switch declarations work
+	// (we have already filter this implementation, though, during the loading phase)
+	// http://tech.groups.yahoo.com/group/svg-developers/message/61236
+	ns2proc[svgns] = !impl.hasFeature("http://www.w3.org/TR/SVG11/feature#Animation", "1.1"); //&& !impl.hasFeature("org.w3c.svg.animation", "1.0");
 	ns2proc[smilanimns] = !impl.hasFeature(smilanimns, "1.1");
 	ns2proc[smil2ns] = !impl.hasFeature(smil2ns, "2.0");
 	ns2proc[smil21ns] = !impl.hasFeature(smil21ns, "2.1");
