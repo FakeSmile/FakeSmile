@@ -49,6 +49,7 @@ var animators = new Array(); // all animators
 var id2anim = new Object(); // id -> animation elements (workaround a Gecko bug)
 var animations = new Array(); // running animators
 var timeZero;
+var prevTime; // previous render timestamp
 
 /**
  * If declarative animations are not supported,
@@ -61,6 +62,8 @@ function initSMIL() {
 	smile(document);
 
 	timeZero = new Date();
+	prevTime = new Date(0); // not yet rendered
+
 	// I schedule them (after having instantiating them, for sync-based events)
 	// (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
 	for (var i=0, j=animators.length; i<j; ++i)
@@ -1116,6 +1119,8 @@ function Animator(anim, target, index) {
  */
 function animate() {
 	var curTime = new Date();
+	if (curTime<=prevTime)
+		return;
 	for (var i=0, j=animations.length; i<j; ++i) {
 		try {
 			if (!animations[i].f(curTime)) {
@@ -1134,6 +1139,7 @@ function animate() {
 			}
 		}
 	}
+	prevTime = curTime;
 	// it would be cool if the attributes would be computed only, in the previous loop
 	// and then the last values applied after the loop
 	// for that, f(t) must return the value, and we must have a map for object(?).attributeType.attributeName -> value
