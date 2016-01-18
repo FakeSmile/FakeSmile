@@ -271,9 +271,11 @@ Animator.prototype = {
 			if (time.length>11 && time.substring(0,10)=="wallclock(") {
 				var wallclock = new Date();
 				wallclock.setISO8601(time.substring(10,time.length-1));
-				var now = new Date();
-				var diff = wallclock-now;
-				func.call(me, diff);
+				if (!isNaN(wallclock.getTime())) {
+					var now = new Date();
+					var diff = wallclock-now;
+					func.call(me, diff);
+				}
 			} else if (isNaN(parseInt(time))) {
 				var offset = 0;
 				var io = time.indexOf("+");
