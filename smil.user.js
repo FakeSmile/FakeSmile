@@ -50,6 +50,7 @@ var id2anim = new Object(); // id -> animation elements (workaround a Gecko bug)
 var animations = new Array(); // running animators
 var timeZero; // timeline start-up timestamp
 var prevTime; // previous render timestamp
+var animTimer; // render loop timer id, when active
 
 /**
  * If declarative animations are not supported,
@@ -68,12 +69,6 @@ function initSMIL() {
 	// (it doesn't work either: first 0s animation don't trigger begin event to the following -> make it asynchronous)
 	for (var i=0, j=animators.length; i<j; ++i)
 		animators[i].register();
-
-	// render the very start of the timeline
-	animate();
-
-	// schedules the rendering loop
-	window.setInterval(animate, mpf);
 }
 
 function getURLCallback(data) {
@@ -407,6 +402,13 @@ Animator.prototype = {
 
 		this.iterBegin = this.startTime;
 		animations.push(this);
+		// if this is the first running animator, start the rendering loop
+		if (!animTimer) {
+			// asynchronous to render all animators, listeners, etc. starting at this frame
+			window.setTimeout(animate, 0);
+			// schedules the rendering loop
+			animTimer = window.setInterval(animate, mpf);
+		}
 		for (var i=0; i<this.beginListeners.length; ++i)
 			this.beginListeners[i].call();
 		var onbegin = this.anim.getAttribute("onbegin");
@@ -676,6 +678,11 @@ Animator.prototype = {
 		for (var i=0, j=animations.length; i<j; ++i)
 			if (animations[i]==this) {
 				animations.splice(i, 1);
+				// if this is the last running animator, stop the rendering loop
+				if (!animations.length && animTimer) {
+					window.clearInterval(animTimer);
+					animTimer = null;
+				}
 				break;
 			}
 	},
