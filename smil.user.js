@@ -1552,9 +1552,7 @@ if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
 
 		// check that RegExp was applied successfully and that at least year is present
 		if (d && d.length>1) {
-			var offset = 0;
 			var date = new Date(d[1], 0, 1);
-
 			if (d[2]) { date.setMonth(d[2] - 1); }
 			if (d[3]) { date.setDate(d[3]); }
 			if (d[4]) { date.setHours(d[4]); }
@@ -1563,9 +1561,10 @@ if (!isNaN(Date.parse("2012-04-22T19:53:32Z"))){
 			// NOTE: ISO 8601 "decimal fraction of a second" needs to be converted to milliseconds
 			if (d[7]) { date.setMilliseconds(parseFloat("0." + d[7]) * 1000); }
 			if (d[8]) {
-				offset = (parseInt(d[10]) * 60) + parseInt(d[11]);
-				offset *= ((d[9] == '-')? 1: -1);
-			}
+				var offset = (parseInt(d[10]) * 60) + parseInt(d[11]);
+				if (d[9]!='-') { offset = -offset; }
+			} else
+				var offset = 0;
 			offset -= date.getTimezoneOffset();
 			this.setTime(date.getTime() + (offset * 60 * 1000));
 		} else
