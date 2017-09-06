@@ -966,6 +966,9 @@ function Animator(anim, target, index) {
 		this.color();
 
 	} else if (nodeName=="animateMotion") {
+		var boundingClientRect = this.target.getBoundingClientRect();
+		this.height = boundingClientRect.height;
+		this.width = boundingClientRect.width;
 
 		this.isInterpolable = function(from, to) { return true; };
 		this.getCurVal = function() {
@@ -980,8 +983,14 @@ function Animator(anim, target, index) {
 		if (this.path) {
 			this.valueAt = function(percent) {
 				var length = this.path.getTotalLength();
-				var point = this.path.getPointAtLength(percent*length);
-				return point.x+","+point.y;
+				var point = this.path.getPointAtLength(percent * length);
+				var point2 = this.path.getPointAtLength((percent + 0.01) * length);
+				var adjacent = Math.abs(point2.y - point.y);
+				var opposite = Math.abs(point2.x - point.x);
+				var tan = opposite / adjacent;
+				var degrees = Math.atan(tan) * (180 / Math.PI);
+
+				return [point.x, point.y, degrees];
 			};
 		} else {
 			this.translation();
@@ -1013,7 +1022,11 @@ function Animator(anim, target, index) {
 			};
 		}
 		this.step = function(value) {
-			value = "translate("+value+")";
+			value[0] = value[0] - this.width / 2;
+			value[1] = value[1] - this.height / 2;
+			value[2] = -value[2] + 90;
+			value = "translate(" + value[0] + "," + value[1] + ") rotate(" + value[2] + "," + (this.width / 2) + "," + (this.height / 2) + ")";
+			//console.log(this.width, this.height, value)
 			this.target.setAttribute("transform", value);
 		};
 
