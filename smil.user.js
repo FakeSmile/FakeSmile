@@ -966,9 +966,9 @@ function Animator(anim, target, index) {
 		this.color();
 
 	} else if (nodeName=="animateMotion") {
-		var boundingClientRect = this.target.getBoundingClientRect();
-		this.height = boundingClientRect.height;
-		this.width = boundingClientRect.width;
+        var boundingClientRect = this.target.getBoundingClientRect();
+        this.height = boundingClientRect.height;
+        this.width = boundingClientRect.width;
 
 		this.isInterpolable = function(from, to) { return true; };
 		this.getCurVal = function() {
@@ -983,14 +983,14 @@ function Animator(anim, target, index) {
 		if (this.path) {
 			this.valueAt = function(percent) {
 				var length = this.path.getTotalLength();
-				var point = this.path.getPointAtLength(percent * length);
-				var point2 = this.path.getPointAtLength((percent + 0.01) * length);
-				var adjacent = Math.abs(point2.y - point.y);
-				var opposite = Math.abs(point2.x - point.x);
-				var tan = opposite / adjacent;
-				var degrees = Math.atan(tan) * (180 / Math.PI);
+				var point = this.path.getPointAtLength(percent*length);
+				var point2 = this.path.getPointAtLength((percent + 0.015)*length);
+                var adjacent = point2.y - point.y;
+                var opposite = parseInt(point2.x) - parseInt(point.x);
+                var tan = opposite / adjacent;
+                var degree = - Math.atan(tan) * (180 / Math.PI) + (point2.y < point.y ? -90 : 90);
 
-				return [point.x, point.y, degrees];
+				return [point.x, point.y, degree];
 			};
 		} else {
 			this.translation();
@@ -1022,12 +1022,24 @@ function Animator(anim, target, index) {
 			};
 		}
 		this.step = function(value) {
-			value[0] = value[0] - this.width / 2;
-			value[1] = value[1] - this.height / 2;
-			value[2] = -value[2] + 90;
-			value = "translate(" + value[0] + "," + value[1] + ") rotate(" + value[2] + "," + (this.width / 2) + "," + (this.height / 2) + ")";
-			//console.log(this.width, this.height, value)
-			this.target.setAttribute("transform", value);
+		    // Get angles
+		    var angle_a = value[2];
+            var angle_b = 90 - angle_a;
+
+            // Convert to radiants
+            angle_a = angle_a * (Math.PI / 180);
+            angle_b = angle_b * (Math.PI / 180);
+
+            // Get lengths
+            var width_a = Math.sin(angle_a) * this.height/*hypotenuse*/;
+            var width_b = Math.sin(angle_b) * this.width/*hypotenuse*/;
+
+            // Get heights
+            var height_a = Math.cos(angle_a) * this.height/*hypotenuse*/;
+            var height_b = Math.cos(angle_b) * this.width/*hypotenuse*/;
+
+			var transform = "translate(" + (value[0] + (width_a + width_b)/2) + "," + (value[1] - (height_a + height_b)/2) + ") rotate(" + (value[2]) + ")";
+			this.target.setAttribute("transform", transform);
 		};
 
 	} else if (nodeName=="animateTransform") {
